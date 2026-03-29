@@ -92,49 +92,82 @@ system.runInterval(() => {
 }, 80);
 
 // ══════════════════════════════════════════
-// Detector de uso de items (Tijeras y Pergamino)
-// Se usa itemCompleteUse porque los items son tipo "food"
-// para habilitar el right-click en Bedrock
+// Detector de uso de items (Pergamino)
 // ══════════════════════════════════════════
 world.afterEvents.itemCompleteUse.subscribe((event) => {
   const player = event.source;
   const item = event.itemStack;
 
-  if (item.typeId === "miaddon:scissors") {
-    handleScissorsUse(player);
-  } else if (item.typeId === "miaddon:samson_scroll") {
+  if (item.typeId === "miaddon:samson_scroll") {
     handleScrollUse(player);
   }
 });
 
 // ══════════════════════════════════════════
-// Tijeras de Dalila — La traición
+// Tijeras de Dalila — Click en otro jugador
+// Left-click (ataque) o Right-click (interacción)
 // ══════════════════════════════════════════
-function handleScissorsUse(player) {
-  // PASO 1 — Mensaje dramático
-  player.sendMessage("§4§l☠ DALILA HA TRAICIONADO A SANSÓN ☠");
-  player.sendMessage('§c§o"Y ella hizo rapar los siete cabellos de su cabeza..."');
-  player.sendMessage("§4§l— Jueces 16:19");
+function handleScissorsOnTarget(attacker, target) {
+  // Ambos deben ser jugadores
+  if (attacker.typeId !== "minecraft:player") return;
+  if (target.typeId !== "minecraft:player") return;
 
-  // PASO 2 — Remover buffs positivos
-  removeBuffs(player);
+  // Verificar que el atacante sostiene las tijeras
+  const attackerEquip = attacker.getComponent("equippable");
+  if (!attackerEquip) return;
+  const mainhand = attackerEquip.getEquipment(EquipmentSlot.Mainhand);
+  if (!mainhand || mainhand.typeId !== "miaddon:scissors") return;
 
-  // PASO 3 — Aplicar efectos negativos
+  // Verificar que la víctima lleva el Cabello de Sansón
+  const targetEquip = target.getComponent("equippable");
+  if (!targetEquip) return;
+  const targetHead = targetEquip.getEquipment(EquipmentSlot.Head);
+  if (!targetHead || targetHead.typeId !== "miaddon:samson_hair") return;
+
+  // Ejecutar en el siguiente tick para evitar problemas de sincronización
+  system.run(() => {
+    try {
+      // Quitar el casco de la víctima
+      targetEquip.setEquipment(EquipmentSlot.Head, undefined);
+      // Consumir las tijeras del atacante
+      attackerEquip.setEquipment(EquipmentSlot.Mainhand, undefined);
+    } catch (e) {}
+  });
+
+  // Evitar que el detector de equipo envíe mensaje duplicado
+  wearingHair.delete(target.name);
+
+  // Mensajes dramáticos
+  attacker.sendMessage("§4§l☠ Has cortado el cabello de Sansón... §r§4La traición está hecha.");
+  target.sendMessage("§4§l☠ DALILA HA TRAICIONADO A SANSÓN ☠");
+  target.sendMessage('§c§o"Y ella hizo rapar los siete cabellos de su cabeza..."');
+  target.sendMessage("§4§l— Jueces 16:19");
+
+  // Remover buffs positivos de la víctima
+  removeBuffs(target);
+
+  // Aplicar maldición a la víctima
   try {
-    player.addEffect("weakness", 1200, { amplifier: 4, showParticles: true });
-    player.addEffect("slowness", 1200, { amplifier: 2, showParticles: true });
-    player.addEffect("mining_fatigue", 1200, { amplifier: 2, showParticles: true });
-    player.addEffect("blindness", 100, { amplifier: 0, showParticles: true });
-    player.addEffect("nausea", 60, { amplifier: 0, showParticles: true });
-  } catch (e) {
-    // Fallback por si algún efecto no existe
-  }
+    target.addEffect("weakness", 1200, { amplifier: 4, showParticles: true });
+    target.addEffect("slowness", 1200, { amplifier: 2, showParticles: true });
+    target.addEffect("mining_fatigue", 1200, { amplifier: 2, showParticles: true });
+    target.addEffect("blindness", 100, { amplifier: 0, showParticles: true });
+    target.addEffect("nausea", 60, { amplifier: 0, showParticles: true });
+  } catch (e) {}
 
-  // PASO 4 — Marcar como maldecido
-  cursedPlayers.set(player.name, system.currentTick);
-
-  // El item ya fue consumido automáticamente por ser tipo food (un solo uso)
+  // Marcar víctima como maldecida
+  cursedPlayers.set(target.name, system.currentTick);
 }
+
+// Left-click: atacar a otro jugador con las tijeras
+world.afterEvents.entityHitEntity.subscribe((event) => {
+  handleScissorsOnTarget(event.damagingEntity, event.hitEntity);
+});
+
+// Right-click: interactuar con otro jugador con las tijeras
+world.afterEvents.playerInteractWithEntity.subscribe((event) => {
+  handleScissorsOnTarget(event.player, event.target);
+});
 
 // ══════════════════════════════════════════
 // Pergamino de Jueces — Instrucciones
@@ -143,7 +176,7 @@ function handleScrollUse(player) {
   player.sendMessage("§e=== INSTRUCCIONES: ADD-ON DE SANSÓN ===");
   player.sendMessage("§f▸ Equipa el §6Cabello de Sansón§f en tu cabeza para obtener superfuerza.");
   player.sendMessage("§f▸ Con el casco puesto tendrás: §afuerza, velocidad, resistencia y más.");
-  player.sendMessage("§f▸ Las §cTijeras de Dalila§f te quitan el poder por 60 segundos.");
+  player.sendMessage("§f▸ Usa las §cTijeras de Dalila§f en otro jugador para cortarle el cabello y quitarle el poder.");
   player.sendMessage("§f▸ Después de 60 segundos, §atu poder regresa§f si sigues con el casco.");
   player.sendMessage("§e=====================================");
 

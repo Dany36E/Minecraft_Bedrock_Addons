@@ -1,0 +1,49 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.miaddon.samson_hair",
+        "texture_width": 64,
+        "texture_height": 64,
+        "visible_bounds_width": 3,
+        "visible_bounds_height": 4.5,
+        "visible_bounds_offset": [0, 1.5, 0]
+      },
+      "bones": [
+        {
+          "name": "samson_hair",
+          "pivot": [0, 24, 0],
+          "cubes": [
+            {
+              "origin": [-4.5, 23.5, -4.5],
+              "size": [9, 5, 9],
+              "uv": [0, 0],
+              "inflate": 0.5
+            },
+            {
+              "origin": [-4, 15, 3],
+              "size": [8, 9, 2],
+              "uv": [0, 14]
+            },
+            {
+              "origin": [-3.5, 7, 3.5],
+              "size": [7, 8, 1],
+              "uv": [0, 26]
+            },
+            {
+              "origin": [-5, 15, -1],
+              "size": [1, 10, 5],
+              "uv": [36, 0]
+            },
+            {
+              "origin": [4, 15, -1],
+              "size": [1, 10, 5],
+              "uv": [36, 16]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

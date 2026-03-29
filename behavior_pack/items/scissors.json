@@ -14,15 +14,7 @@
       "minecraft:display_name": {
         "value": "item.miaddon:scissors.name"
       },
-      "minecraft:food": {
-        "nutrition": 0,
-        "saturation_modifier": 0.1,
-        "can_always_eat": true
-      },
-      "minecraft:use_modifiers": {
-        "use_duration": 1.6
-      },
-      "minecraft:use_animation": "eat"
+      "minecraft:hand_equipped": true
     }
   }
 }
