@@ -1,0 +1,20 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "miaddon:samson_entity",
+      "materials": { "default": "entity_alphatest" },
+      "textures": {
+        "default": "textures/entity/samson"
+      },
+      "geometry": {
+        "default": "geometry.miaddon.samson"
+      },
+      "render_controllers": ["controller.render.samson"],
+      "spawn_egg": {
+        "base_color": "#6B3A2A",
+        "overlay_color": "#2C1505"
+      }
+    }
+  }
+}

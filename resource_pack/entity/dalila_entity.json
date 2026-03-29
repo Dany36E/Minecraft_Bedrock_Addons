@@ -1,0 +1,20 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "miaddon:dalila_entity",
+      "materials": { "default": "entity_alphatest" },
+      "textures": {
+        "default": "textures/entity/dalila"
+      },
+      "geometry": {
+        "default": "geometry.miaddon.dalila"
+      },
+      "render_controllers": ["controller.render.dalila"],
+      "spawn_egg": {
+        "base_color": "#7B3FA0",
+        "overlay_color": "#C8A020"
+      }
+    }
+  }
+}

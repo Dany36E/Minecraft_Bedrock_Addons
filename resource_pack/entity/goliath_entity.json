@@ -1,0 +1,20 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "miaddon:goliath_entity",
+      "materials": { "default": "entity_alphatest" },
+      "textures": {
+        "default": "textures/entity/goliath"
+      },
+      "geometry": {
+        "default": "geometry.miaddon.goliath"
+      },
+      "render_controllers": ["controller.render.goliath"],
+      "spawn_egg": {
+        "base_color": "#CD8B3A",
+        "overlay_color": "#8B5A14"
+      }
+    }
+  }
+}

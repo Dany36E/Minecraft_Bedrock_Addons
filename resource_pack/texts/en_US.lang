@@ -23,3 +23,9 @@ item.miaddon:david_costume.name=Traje de David
 item.miaddon:goliat_costume.name=Traje de Goliát
 item.miaddon:david_sling.name=Honda de David
 item.miaddon:bronze_spear.name=Lanza de Bronce de Goliát
+
+## Entidades de Personajes
+entity.miaddon:samson_entity.name=Sansón
+entity.miaddon:dalila_entity.name=Dalila
+entity.miaddon:david_entity.name=David
+entity.miaddon:goliath_entity.name=Goliát

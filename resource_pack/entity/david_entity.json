@@ -1,0 +1,20 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "miaddon:david_entity",
+      "materials": { "default": "entity_alphatest" },
+      "textures": {
+        "default": "textures/entity/david"
+      },
+      "geometry": {
+        "default": "geometry.miaddon.david"
+      },
+      "render_controllers": ["controller.render.david"],
+      "spawn_egg": {
+        "base_color": "#C8734A",
+        "overlay_color": "#C85A14"
+      }
+    }
+  }
+}

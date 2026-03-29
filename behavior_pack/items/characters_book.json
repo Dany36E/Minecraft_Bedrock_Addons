@@ -13,7 +13,8 @@
       "minecraft:display_name": {
         "value": "item.miaddon:characters_book.name"
       },
-      "minecraft:hand_equipped": true
+      "minecraft:hand_equipped": true,
+      "minecraft:glint": true
     }
   }
 }
