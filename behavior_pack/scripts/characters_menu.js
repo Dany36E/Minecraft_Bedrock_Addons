@@ -1,6 +1,6 @@
 // characters_menu.js — Sistema de transformación con entidades montables + control completo
 // @minecraft/server 1.12.0 + @minecraft/server-ui 1.3.0
-import { world, system } from "@minecraft/server";
+import { world, system, ItemStack } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 
 // ══════════════════════════════════════════
@@ -12,6 +12,7 @@ const CHARACTERS = {
     ref: "Jueces 13-16",
     color: "§e",
     entityId: "miaddon:samson_entity",
+    strikeItemId: "miaddon:strike_samson",
     attackDamage: 12,
     desc: "Nazareo desde el vientre de su madre, consagrado a Dios. Su fuerza sobrenatural provenía del Espíritu del Señor, y su señal externa era su cabello largo que nunca fue cortado.",
     verse: '"...y el Espíritu del Señor comenzó a manifestarse en él." — Jueces 13:25',
@@ -34,6 +35,7 @@ const CHARACTERS = {
     ref: "Jueces 16:4-22",
     color: "§d",
     entityId: "miaddon:dalila_entity",
+    strikeItemId: "miaddon:strike_dalila",
     attackDamage: 4,
     desc: 'Mujer del valle de Sorec. Los señores filisteos le ofrecieron 1,100 siclos de plata cada uno para descubrir el secreto de la fuerza de Sansón.',
     verse: '"Después de esto aconteció que se enamoró de una mujer en el valle de Sorec, la cual se llamaba Dalila." — Jueces 16:4',
@@ -52,6 +54,7 @@ const CHARACTERS = {
     ref: "I Samuel 16-17",
     color: "§b",
     entityId: "miaddon:david_entity",
+    strikeItemId: "miaddon:strike_david",
     attackDamage: 6,
     desc: 'El menor de los hijos de Isaí, pastor de ovejas en Belén. Rubio, de hermosos ojos y buen parecer. Ungido por Samuel como futuro rey de Israel.',
     verse: '"Era rubio, de hermosos ojos, y de buen parecer. Entonces el Señor dijo: Levántate y úngelo, porque éste es." — I Samuel 16:12',
@@ -71,6 +74,7 @@ const CHARACTERS = {
     ref: "I Samuel 17",
     color: "§c",
     entityId: "miaddon:goliath_entity",
+    strikeItemId: "miaddon:strike_goliath",
     attackDamage: 20,
     desc: 'Campeón de los filisteos de la ciudad de Gat. Medía seis codos y un palmo (2.9 metros). Vestía cota de malla de 5,000 siclos de bronce, grebas de bronce, y jabalina de bronce.',
     verse: '"¿Por qué habéis salido a presentar batalla? ¡Escoged de entre vosotros un hombre que venga contra mí!" — I Samuel 17:8',
@@ -91,8 +95,110 @@ const CHARACTERS = {
 // ══════════════════════════════════════════
 // Estado activo de transformaciones
 // ══════════════════════════════════════════
-/** @type {Map<string, {entity: import("@minecraft/server").Entity, charId: string, invisTick: number}>} */
+/** @type {Map<string, {entity: import("@minecraft/server").Entity, charId: string, invisTick: number, lastY: number, jumpCd: number}>} */
 const activeTransformations = new Map();
+
+// Map strike items → character IDs
+const STRIKE_MAP = {
+  "miaddon:strike_samson": "samson",
+  "miaddon:strike_dalila": "dalila",
+  "miaddon:strike_david": "david",
+  "miaddon:strike_goliath": "goliath",
+};
+
+// ══════════════════════════════════════════
+// Strike item attack system
+// ══════════════════════════════════════════
+world.beforeEvents.itemUse.subscribe((event) => {
+  const player = event.source;
+  const item = event.itemStack;
+  if (!item) return;
+
+  const charId = STRIKE_MAP[item.typeId];
+  if (!charId) return;
+
+  event.cancel = true;
+  system.run(() => performAttack(player, charId));
+});
+
+function performAttack(player, charId) {
+  const data = activeTransformations.get(player.name);
+  if (!data || data.charId !== charId) return;
+
+  const ch = CHARACTERS[charId];
+  if (!ch) return;
+
+  try {
+    const loc = player.location;
+    const dir = player.getViewDirection();
+    const dim = player.dimension;
+
+    const hits = dim.getEntities({
+      location: { x: loc.x + dir.x, y: loc.y + dir.y + 1.62, z: loc.z + dir.z },
+      maxDistance: 4,
+      closest: 4,
+      excludeTypes: [ch.entityId],
+    });
+
+    let attacked = false;
+    for (const target of hits) {
+      if (target.id === player.id) continue;
+      if (data.entity?.isValid() && target.id === data.entity.id) continue;
+
+      try {
+        target.applyDamage(ch.attackDamage);
+        attacked = true;
+
+        // Check special interactions
+        const targetData = findTransformByEntity(target);
+        if (targetData) {
+          handleSpecialCombat(player, data, targetData.playerName, targetData.data);
+        }
+      } catch (_) {}
+      break;
+    }
+  } catch (_) {}
+}
+
+function findTransformByEntity(entity) {
+  for (const [playerName, data] of activeTransformations) {
+    if (data.entity?.isValid() && data.entity.id === entity.id) {
+      return { playerName, data };
+    }
+  }
+  return null;
+}
+
+function handleSpecialCombat(attacker, attackerData, targetPlayerName, targetData) {
+  // David vs Goliath
+  if (attackerData.charId === "david" && targetData.charId === "goliath") {
+    try {
+      targetData.entity.applyDamage(50);
+      const targetPlayer = findPlayerByName(targetPlayerName);
+      if (targetPlayer) {
+        targetPlayer.addEffect("levitation", 40, { amplifier: 2, showParticles: true });
+        targetPlayer.sendMessage("§4✦ ¡Una piedra te golpea en la frente!");
+        targetPlayer.sendMessage('§c§o"...y cayó sobre su rostro en tierra" — I Samuel 17:49');
+      }
+      attacker.sendMessage("§b✦ ¡La piedra hirió al filisteo en la frente!");
+      attacker.sendMessage('§b§o"...no con espada ni con lanza salva el Señor" — I Samuel 17:47');
+    } catch (_) {}
+  }
+  // Dalila vs Samson
+  if (attackerData.charId === "dalila" && targetData.charId === "samson") {
+    try {
+      const samsonPlayer = findPlayerByName(targetPlayerName);
+      if (samsonPlayer) {
+        samsonPlayer.addEffect("weakness", 600, { amplifier: 4, showParticles: true });
+        samsonPlayer.addEffect("slowness", 600, { amplifier: 2, showParticles: true });
+        samsonPlayer.sendMessage("§4☠ DALILA TE HA TRAICIONADO — Jueces 16:19");
+        samsonPlayer.sendMessage('§4§o"...ella llamó a un hombre, quien le rapó las siete trenzas"');
+      }
+      attacker.sendMessage("§d✦ Los 1,100 siclos de plata son tuyos.");
+      attacker.sendMessage('§d§o"Ella dijo: ¡Sansón, los filisteos sobre ti!" — Jueces 16:20');
+    } catch (_) {}
+  }
+}
 
 // ══════════════════════════════════════════
 // Listener: uso del Libro de Personajes
@@ -195,7 +301,14 @@ function transformPlayer(player, characterId) {
       player.addEffect(eff.id, eff.dur, { amplifier: eff.amp, showParticles: false });
     }
 
-    activeTransformations.set(player.name, { entity, charId: characterId, invisTick: 0 });
+    activeTransformations.set(player.name, { entity, charId: characterId, invisTick: 0, lastY: loc.y, jumpCd: 0 });
+
+    // Give strike item
+    try {
+      const strikeItem = new ItemStack(ch.strikeItemId, 1);
+      const inv = player.getComponent("inventory")?.container;
+      if (inv) inv.setItem(0, strikeItem);
+    } catch (_) {}
 
     for (const msg of ch.transformMsg) {
       player.sendMessage(msg);
@@ -218,7 +331,20 @@ function revertTransformation(player, silent = false) {
   try { player.runCommand("ride @s stop_riding"); } catch (_) {}
   try { player.removeEffect("invisibility"); } catch (_) {}
 
+  // Remove strike item
   const ch = CHARACTERS[data.charId];
+  try {
+    const inv = player.getComponent("inventory")?.container;
+    if (inv && ch) {
+      for (let i = 0; i < inv.size; i++) {
+        const slot = inv.getItem(i);
+        if (slot?.typeId === ch.strikeItemId) {
+          inv.setItem(i, undefined);
+        }
+      }
+    }
+  } catch (_) {}
+
   if (ch) {
     for (const eff of ch.effects) {
       try { player.removeEffect(eff.id); } catch (_) {}
@@ -278,6 +404,19 @@ system.runInterval(() => {
         player.addEffect("invisibility", 999999, { amplifier: 0, showParticles: false });
       } catch (_) {}
     }
+
+    // Jump detection — if player Y increased significantly, make entity jump
+    try {
+      const curY = player.location.y;
+      data.jumpCd = (data.jumpCd || 0) - 1;
+      if (data.lastY !== undefined && (curY - data.lastY) > 0.3 && data.jumpCd <= 0) {
+        data.jumpCd = 30;
+        try {
+          player.addEffect("jump_boost", 10, { amplifier: 2, showParticles: false });
+        } catch (_) {}
+      }
+      data.lastY = curY;
+    } catch (_) {}
   }
 }, 20);
 
@@ -287,96 +426,6 @@ world.afterEvents.playerLeave.subscribe((event) => {
   if (data) {
     try { data.entity.remove(); } catch (_) {}
     activeTransformations.delete(event.playerName);
-  }
-});
-
-// ══════════════════════════════════════════
-// Combat — character-specific attack damage + specials
-// ══════════════════════════════════════════
-world.afterEvents.entityHitEntity.subscribe((event) => {
-  const attacker = event.damagingEntity;
-  const target = event.hitEntity;
-  if (!attacker || !target) return;
-
-  // Find if the attacker is riding a character entity
-  let attackerData = null;
-  if (attacker.typeId === "minecraft:player") {
-    attackerData = activeTransformations.get(attacker.name);
-  }
-
-  // If player hits their own mount, redirect attack to entity in view direction
-  if (attackerData && attackerData.entity?.isValid() && target.id === attackerData.entity.id) {
-    const ch = CHARACTERS[attackerData.charId];
-    try {
-      const hits = attacker.getEntitiesFromViewDirection({ maxDistance: 5 });
-      for (const hit of hits) {
-        if (hit.entity.id === attackerData.entity.id) continue;
-        if (hit.entity.id === attacker.id) continue;
-        hit.entity.applyDamage(ch.attackDamage);
-        break;
-      }
-    } catch (_) {}
-    return;
-  }
-
-  // Find if the target is a character entity (someone else's mount)
-  let targetPlayerName = null;
-  let targetData = null;
-  for (const [pName, d] of activeTransformations) {
-    if (d.entity?.isValid() && d.entity.id === target.id) {
-      targetPlayerName = pName;
-      targetData = d;
-      break;
-    }
-  }
-
-  // Player-as-character attacks another character entity
-  if (attackerData && targetData) {
-    const attackerCh = CHARACTERS[attackerData.charId];
-    const targetCh = CHARACTERS[targetData.charId];
-
-    // Apply character-specific damage to the entity
-    try {
-      target.applyDamage(attackerCh.attackDamage);
-    } catch (_) {}
-
-    // SPECIAL: David vs Goliath — massive bonus damage + levitation
-    if (attackerData.charId === "david" && targetData.charId === "goliath") {
-      try {
-        target.applyDamage(50);
-        const targetPlayer = findPlayerByName(targetPlayerName);
-        if (targetPlayer) {
-          targetPlayer.addEffect("levitation", 40, { amplifier: 2, showParticles: true });
-          targetPlayer.sendMessage("§4✦ ¡Una piedra te golpea en la frente!");
-          targetPlayer.sendMessage('§c§o"...y cayó sobre su rostro en tierra" — I Samuel 17:49');
-        }
-        attacker.sendMessage("§b✦ ¡La piedra hirió al filisteo en la frente!");
-        attacker.sendMessage('§b§o"...no con espada ni con lanza salva el Señor" — I Samuel 17:47');
-      } catch (_) {}
-    }
-
-    // SPECIAL: Dalila vs Samson — weakness + weaken samson
-    if (attackerData.charId === "dalila" && targetData.charId === "samson") {
-      try {
-        const samsonPlayer = findPlayerByName(targetPlayerName);
-        if (samsonPlayer) {
-          samsonPlayer.addEffect("weakness", 600, { amplifier: 4, showParticles: true });
-          samsonPlayer.addEffect("slowness", 600, { amplifier: 2, showParticles: true });
-          samsonPlayer.sendMessage("§4☠ DALILA TE HA TRAICIONADO — Jueces 16:19");
-          samsonPlayer.sendMessage('§4§o"...ella llamó a un hombre, quien le rapó las siete trenzas"');
-        }
-        attacker.sendMessage("§d✦ Los 1,100 siclos de plata son tuyos.");
-        attacker.sendMessage('§d§o"Ella dijo: ¡Sansón, los filisteos sobre ti!" — Jueces 16:20');
-      } catch (_) {}
-    }
-  }
-
-  // Player-as-character attacks a regular mob/entity
-  if (attackerData && !targetData && target.typeId !== "minecraft:player") {
-    const attackerCh = CHARACTERS[attackerData.charId];
-    try {
-      target.applyDamage(attackerCh.attackDamage);
-    } catch (_) {}
   }
 });
 
