@@ -10,15 +10,17 @@
     },
     "components": {
       "minecraft:max_stack_size": 1,
-      "minecraft:icon": {
-        "texture": "miaddon:scissors"
-      },
+      "minecraft:icon": "miaddon:scissors",
       "minecraft:display_name": {
         "value": "item.miaddon:scissors.name"
       },
       "minecraft:food": {
         "nutrition": 0,
+        "saturation_modifier": 0.1,
         "can_always_eat": true
+      },
+      "minecraft:use_modifiers": {
+        "use_duration": 1.6
       },
       "minecraft:use_animation": "eat"
     }

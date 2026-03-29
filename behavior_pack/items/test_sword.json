@@ -17,9 +17,7 @@
       "minecraft:durability": {
         "max_durability": 500
       },
-      "minecraft:icon": {
-        "texture": "miaddon_test_sword"
-      },
+      "minecraft:icon": "miaddon_test_sword",
       "minecraft:display_name": {
         "value": "Test Sword"
       }

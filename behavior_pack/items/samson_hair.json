@@ -15,11 +15,10 @@
       },
       "minecraft:wearable": {
         "dispensable": true,
-        "slot": "slot.armor.head"
+        "slot": "slot.armor.head",
+        "protection": 5
       },
-      "minecraft:icon": {
-        "texture": "miaddon:samson_hair"
-      },
+      "minecraft:icon": "miaddon:samson_hair",
       "minecraft:display_name": {
         "value": "item.miaddon:samson_hair.name"
       },
