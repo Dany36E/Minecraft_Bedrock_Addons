@@ -1,0 +1,9 @@
+{
+  "resource_pack_name": "Mi Addon",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "miaddon_test_sword": {
+      "textures": "textures/items/test_sword"
+    }
+  }
+}

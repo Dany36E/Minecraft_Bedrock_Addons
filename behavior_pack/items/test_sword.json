@@ -1,0 +1,28 @@
+{
+  "format_version": "1.21.10",
+  "minecraft:item": {
+    "description": {
+      "identifier": "miaddon:test_sword",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.sword"
+      }
+    },
+    "components": {
+      "minecraft:max_stack_size": 1,
+      "minecraft:hand_equipped": true,
+      "minecraft:damage": {
+        "value": 10
+      },
+      "minecraft:durability": {
+        "max_durability": 500
+      },
+      "minecraft:icon": {
+        "texture": "miaddon_test_sword"
+      },
+      "minecraft:display_name": {
+        "value": "Test Sword"
+      }
+    }
+  }
+}

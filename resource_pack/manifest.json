@@ -5,7 +5,7 @@
     "description": "Resource Pack principal del addon",
     "uuid": "aaf37a1e-4488-450a-a4f1-330f28740046",
     "version": [1, 0, 0],
-    "min_engine_version": [1, 21, 0]
+    "min_engine_version": [1, 20, 0]
   },
   "modules": [
     {
