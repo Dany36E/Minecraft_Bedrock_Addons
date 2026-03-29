@@ -1,0 +1,17 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Mi Addon - Resource Pack",
+    "description": "Resource Pack principal del addon",
+    "uuid": "aaf37a1e-4488-450a-a4f1-330f28740046",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 21, 0]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "2711d455-df19-44ea-8ca8-25fc325e64cf",
+      "version": [1, 0, 0]
+    }
+  ]
+}
