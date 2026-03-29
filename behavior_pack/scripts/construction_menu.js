@@ -1,7 +1,7 @@
 // construction_menu.js — Menú interactivo de construcciones bíblicas
 // @minecraft/server 1.12.0 + @minecraft/server-ui 1.3.0
 import { world, system, EquipmentSlot } from "@minecraft/server";
-import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
+import { ActionFormData } from "@minecraft/server-ui";
 import { STRUCTURES } from "./structures/all_structures.js";
 
 // ══════════════════════════════════════════
@@ -80,12 +80,12 @@ const STRUCTURE_LORE = {
 // Filtros por historia bíblica
 // ══════════════════════════════════════════
 const STORY_FILTERS = {
-  all:       { label: "§l§f✦ Todas las estructuras",   sub: "§711 construcciones",                 ids: Object.keys(STRUCTURE_LORE) },
-  samson:    { label: "§l§c⚔ Historia de Sansón",       sub: "§7Prisión de Gaza, Templo de Dagón",  ids: ["samson_prison", "dagon_temple"] },
-  noah:      { label: "§l§9🌊 Historia de Noé",         sub: "§7El Arca del diluvio",                ids: ["ark"] },
-  moses:     { label: "§l§6☁ Historia de Moisés",       sub: "§7Tabernáculo, Altar, Pirámide",       ids: ["tabernacle", "altar", "pyramid"] },
-  genesis:   { label: "§l§d🏗 Génesis y orígenes",      sub: "§7Torre de Babel, Cruz",                ids: ["tower_babel", "cross"] },
-  buildings: { label: "§l§b🏠 Edificios",               sub: "§7Iglesia, Casa, Pozo",                 ids: ["church", "medieval_house", "well"] },
+  all:       { label: "§l§f✦ Todas las estructuras",   sub: "§e11 construcciones",                 ids: Object.keys(STRUCTURE_LORE) },
+  samson:    { label: "§l§c⚔ Historia de Sansón",       sub: "§ePrisión de Gaza, Templo de Dagón",  ids: ["samson_prison", "dagon_temple"] },
+  noah:      { label: "§l§9🌊 Historia de Noé",         sub: "§eEl Arca del diluvio",                ids: ["ark"] },
+  moses:     { label: "§l§6☁ Historia de Moisés",       sub: "§eTabernáculo, Altar, Pirámide",       ids: ["tabernacle", "altar", "pyramid"] },
+  genesis:   { label: "§l§d🏗 Génesis y orígenes",      sub: "§eTorre de Babel, Cruz",                ids: ["tower_babel", "cross"] },
+  buildings: { label: "§l§b🏠 Edificios",               sub: "§eIglesia, Casa, Pozo",                 ids: ["church", "medieval_house", "well"] },
 };
 
 // ══════════════════════════════════════════
@@ -174,34 +174,58 @@ function showLoreScreen(player, structureId, filterId) {
   if (!lore || !structure) return;
 
   const hasSamson = playerHasSamsonHelmet(player);
-  const speedNote = hasSamson ? "\n§a⚡ Casco de Sansón detectado: velocidad ×2" : "";
+  const speedNote = hasSamson ? "\n\n§a⚡ Casco de Sansón detectado: velocidad ×2" : "";
 
   const body =
     `§e${lore.ref}\n\n` +
     `§f${lore.story}\n\n` +
-    `§o§7${lore.verse}\n\n` +
-    `§r§7━━━━━━━━━━━━━━━━━━━━\n` +
+    `§o§b${lore.verse}\n\n` +
+    `§r§e━━━━━━━━━━━━━━━━━━━━\n` +
     `§fDimensiones: §e${lore.dims}\n` +
     `§fBloques: §e${lore.blocks}\n` +
     `§fTiempo est.: §e${lore.time}\n` +
     `§fMateriales: §e${lore.materials}` +
     speedNote;
 
-  const form = new ModalFormData();
+  // Pantalla 1: Lore bíblico con botones de acción
+  const form = new ActionFormData();
   form.title(`§6${lore.name}`);
-  form.textField(body, "", "");
-  form.slider("Desplazamiento adelante (bloques)", 0, 20, 1, 5);
-  form.dropdown("Rotación", ["Norte (0°)", "Este (90°)", "Sur (180°)", "Oeste (270°)"], 0);
+  form.body(body);
+  form.button("§l§a⚒ Construir aquí");
+  form.button("§l§e⚒ Construir adelante (5 bloques)");
+  form.button("§c↩ Volver");
 
   form.show(player).then((response) => {
-    if (response.canceled) {
+    if (response.canceled || response.selection === 2) {
       system.run(() => openFilteredMenu(player, filterId));
       return;
     }
 
-    const [, offset, rotIdx] = response.formValues;
+    const offset = response.selection === 0 ? 0 : 5;
+
+    // Pantalla 2: Solo rotación
+    system.run(() => chooseRotation(player, structureId, filterId, offset));
+  });
+}
+
+function chooseRotation(player, structureId, filterId, offset) {
+  const form = new ActionFormData();
+  form.title("§6Rotación");
+  form.body("§fElige la orientación de la estructura:");
+  form.button("§fNorte (0°)");
+  form.button("§fEste (90°)");
+  form.button("§fSur (180°)");
+  form.button("§fOeste (270°)");
+  form.button("§c↩ Volver");
+
+  form.show(player).then((response) => {
+    if (response.canceled || response.selection === 4) {
+      system.run(() => showLoreScreen(player, structureId, filterId));
+      return;
+    }
+
     const rotations = [0, 90, 180, 270];
-    const rotation = rotations[rotIdx];
+    const rotation = rotations[response.selection];
 
     const pos = player.location;
     const basePos = { x: Math.floor(pos.x), y: Math.floor(pos.y), z: Math.floor(pos.z) };
