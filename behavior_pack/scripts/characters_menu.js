@@ -304,6 +304,21 @@ world.afterEvents.entityHitEntity.subscribe((event) => {
     attackerData = activeTransformations.get(attacker.name);
   }
 
+  // If player hits their own mount, redirect attack to entity in view direction
+  if (attackerData && attackerData.entity?.isValid() && target.id === attackerData.entity.id) {
+    const ch = CHARACTERS[attackerData.charId];
+    try {
+      const hits = attacker.getEntitiesFromViewDirection({ maxDistance: 5 });
+      for (const hit of hits) {
+        if (hit.entity.id === attackerData.entity.id) continue;
+        if (hit.entity.id === attacker.id) continue;
+        hit.entity.applyDamage(ch.attackDamage);
+        break;
+      }
+    } catch (_) {}
+    return;
+  }
+
   // Find if the target is a character entity (someone else's mount)
   let targetPlayerName = null;
   let targetData = null;

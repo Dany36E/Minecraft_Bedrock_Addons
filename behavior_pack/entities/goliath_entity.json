@@ -7,15 +7,11 @@
       "is_summonable": true,
       "is_experimental": false
     },
-    "component_groups": {
-      "miaddon:with_rider": {
-        "minecraft:behavior.controlled_by_player": {
-          "priority": 0,
-          "speed_multiplier": 0.8
-        }
-      }
-    },
     "components": {
+      "minecraft:behavior.controlled_by_player": {
+        "priority": 0,
+        "speed_multiplier": 0.8
+      },
       "minecraft:type_family": { "family": ["biblical_character", "goliath"] },
       "minecraft:scale": { "value": 1.85 },
       "minecraft:collision_box": { "width": 1.1, "height": 3.33 },
@@ -53,11 +49,6 @@
       "minecraft:behavior.look_at_player": {
         "priority": 10,
         "look_distance": 6.0
-      }
-    },
-    "events": {
-      "miaddon:rider_mounted": {
-        "add": { "component_groups": ["miaddon:with_rider"] }
       }
     }
   }

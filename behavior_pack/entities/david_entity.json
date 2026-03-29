@@ -7,15 +7,11 @@
       "is_summonable": true,
       "is_experimental": false
     },
-    "component_groups": {
-      "miaddon:with_rider": {
-        "minecraft:behavior.controlled_by_player": {
-          "priority": 0,
-          "speed_multiplier": 1.2
-        }
-      }
-    },
     "components": {
+      "minecraft:behavior.controlled_by_player": {
+        "priority": 0,
+        "speed_multiplier": 1.2
+      },
       "minecraft:type_family": { "family": ["biblical_character", "david"] },
       "minecraft:scale": { "value": 0.82 },
       "minecraft:collision_box": { "width": 0.5, "height": 1.48 },
@@ -51,11 +47,6 @@
       "minecraft:behavior.look_at_player": {
         "priority": 10,
         "look_distance": 6.0
-      }
-    },
-    "events": {
-      "miaddon:rider_mounted": {
-        "add": { "component_groups": ["miaddon:with_rider"] }
       }
     }
   }

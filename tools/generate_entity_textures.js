@@ -36,6 +36,11 @@ function paintFn(img, x1, y1, x2, y2, fn) {
     for (let x = x1; x <= x2; x++)
       img.setPixelColor(hex(fn(x, y)), x, y);
 }
+function clear(img, x1, y1, x2, y2) {
+  for (let y = y1; y <= y2; y++)
+    for (let x = x1; x <= x2; x++)
+      img.setPixelColor(0x00000000, x, y);
+}
 
 // ══════════════════════════════════════════════════════════
 // SANSÓN — 64×64
@@ -63,7 +68,7 @@ async function generateSamson() {
   row(img, 10, 8, [SKIN, SKIN, SKIN_DK, SKIN, SKIN, SKIN_DK, SKIN, SKIN]);
   row(img, 11, 8, [SKIN_LT, SKIN_LT, SKIN, SKIN_LT, SKIN_LT, SKIN, SKIN_LT, SKIN_LT]);
   // y=12 EYES
-  row(img, 12, 8, [SKIN, "#3A2010", "#0A0800", "#4A2C14", "#4A2C14", "#0A0800", "#3A2010", SKIN]);
+  row(img, 12, 8, [SKIN, "#FFFFFF", "#3A1A0A", SKIN, SKIN, "#3A1A0A", "#FFFFFF", SKIN]);
   // y=13 NOSE
   row(img, 13, 8, [SKIN, SKIN_LT, SKIN, SKIN_DK, SKIN_DK, SKIN, SKIN_LT, SKIN]);
   // y=14 MOUTH
@@ -103,6 +108,9 @@ async function generateSamson() {
       px(img, xx, yy, c);
     }
   }
+
+  // Clear hat overlay front face so the actual face shows through
+  clear(img, 41, 9, 49, 17);
 
   // ─── BODY (uv[16,16], size[8,12,4]) ───
   // Front: x=20..27, y=20..31 | Left: x=16..19,y=20..31 | Right: x=28..31,y=20..31
@@ -247,7 +255,7 @@ async function generateDalila() {
   row(img, 10, 8, [GOLD, GOLD, GOLD, GOLD, GOLD, GOLD, GOLD, GOLD]); // diadem
   row(img, 11, 8, [SKIN, SKIN, SKIN, SKIN, SKIN, SKIN, SKIN, SKIN]); // forehead
   // y=12 EYES with kohl
-  row(img, 12, 8, [SKIN, KOHL, IRIS_DK, IRIS, IRIS, IRIS_DK, KOHL, SKIN]);
+  row(img, 12, 8, [SKIN, KOHL, "#FFFFFF", IRIS, IRIS, "#FFFFFF", KOHL, SKIN]);
   // y=13 NOSE
   row(img, 13, 8, [SKIN, SKIN_LT, SKIN, SKIN_DK, SKIN_DK, SKIN, SKIN_LT, SKIN]);
   // y=14 PAINTED LIPS
@@ -278,6 +286,9 @@ async function generateDalila() {
   // Stripe pattern on veil
   paintFn(img, 0, 50, 35, 60, (x) => x % 2 === 0 ? VEIL : VEIL_DK);
   fill(img, 0, 61, 35, 62, VEIL_DKST); // darker bottom
+
+  // Clear veil front face so the actual face shows through
+  clear(img, 9, 57, 17, 61);
 
   // ─── BODY (uv[16,16], size[8,12,4]) ───
   fill(img, 20, 16, 27, 19, DRESS); fill(img, 28, 16, 35, 19, DRESS);
@@ -382,7 +393,7 @@ async function generateDavid() {
   row(img, 9,  7, [SKIN, SKIN, SKIN, SKIN, SKIN, SKIN, SKIN]); // forehead
   row(img, 10, 7, [SKIN, SKIN, SKIN, SKIN, SKIN, SKIN, SKIN]);
   // y=11 EYES — "hermosos ojos" green-blue
-  row(img, 11, 7, [SKIN, BROW, EYE_WHITE, IRIS, PUPIL, EYE_WHITE, BROW]);
+  row(img, 11, 7, [SKIN, "#FFFFFF", IRIS, SKIN, IRIS, "#FFFFFF", SKIN]);
   // y=12 NOSE
   row(img, 12, 7, [SKIN, SKIN_LT, SKIN, SKIN_DK, SKIN, SKIN_LT, SKIN]);
   // y=13 MOUTH (young, no beard, rosy)
@@ -407,6 +418,9 @@ async function generateDavid() {
   // ─── HAT / HEAD OVERLAY (uv[32,0], size[8,8,8]) ───
   // Curly hair overlay
   paintFn(img, 32, 0, 63, 15, (x, y) => (x + y) % 4 < 2 ? HAIR : HAIR_DK);
+
+  // Clear hat overlay front face so the actual face shows through
+  clear(img, 40, 8, 47, 15);
 
   // ─── CURLY HAIR bone (uv[0,48], size[8,4,8]) ───
   // Consumes (0..24, 48..60) approx
@@ -552,6 +566,9 @@ async function generateGoliath() {
   fill(img, 44, 0, 109, 21, BRONZE);
   fill(img, 55, 0, 65, 10, GOLD); // crest on overlay top
   paintFn(img, 44, 11, 109, 21, (x, y) => y % 2 === 0 ? BRONZE : BRONZE_DK);
+
+  // Clear hat overlay front face so inner helmet visor shows through
+  clear(img, 55, 11, 65, 21);
 
   // ─── BODY (uv[32,16], size[10,12,5]) ───
   // Front: x=37..46, y=21..32
