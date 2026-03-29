@@ -1,79 +1,58 @@
 # deploy-to-minecraft.ps1
-# Despliega el addon a la carpeta de desarrollo de Minecraft Bedrock en Windows
-# Ruta oficial: %APPDATA%\Minecraft Bedrock\Users\Shared\games\com.mojang
-# Ref: https://learn.microsoft.com/en-us/minecraft/creator/documents/gettingstarted
+# Despliega el addon a TODAS las carpetas de Minecraft detectadas
+# Soporta: ruta nueva (%APPDATA%) y UWP (%LOCALAPPDATA%)
 
 $ErrorActionPreference = "Stop"
 
-# Ruta nueva de Minecraft Bedrock (versiones recientes)
-$minecraftPath = "$env:APPDATA\Minecraft Bedrock\Users\Shared\games\com.mojang"
-
-# Fallback: ruta antigua UWP (versiones anteriores a 2024)
-$legacyPath = $null
-if (-not (Test-Path $minecraftPath)) {
-    $packagesDir = "$env:LOCALAPPDATA\Packages"
-    $mcFolder = Get-ChildItem $packagesDir -Directory -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -match "MinecraftUWP_8wekyb3d8bbwe$" } |
-        Select-Object -First 1
-    if ($mcFolder) {
-        $legacyPath = Join-Path $mcFolder.FullName "LocalState\games\com.mojang"
-        if (Test-Path "$legacyPath\minecraftWorlds") {
-            $minecraftPath = $legacyPath
-        }
-    }
-}
-
-if (-not (Test-Path $minecraftPath)) {
-    Write-Host ""
-    Write-Host "ERROR: No se encontro la carpeta com.mojang de Minecraft Bedrock." -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Rutas buscadas:" -ForegroundColor Yellow
-    Write-Host "  Nueva: $env:APPDATA\Minecraft Bedrock\Users\Shared\games\com.mojang"
-    if ($legacyPath) { Write-Host "  Legacy: $legacyPath" }
-    Write-Host ""
-    Write-Host "Solucion: Abre Minecraft Bedrock al menos una vez y vuelve a ejecutar." -ForegroundColor Cyan
-    Write-Host ""
-    exit 1
-}
-
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent $scriptDir
-
 $bpSource = Join-Path $projectDir "behavior_pack"
 $rpSource = Join-Path $projectDir "resource_pack"
 
-$bpDest = Join-Path $minecraftPath "development_behavior_packs\MiAddon_BP"
-$rpDest = Join-Path $minecraftPath "development_resource_packs\MiAddon_RP"
+# Detectar todas las rutas de Minecraft
+$paths = @()
+
+# Ruta nueva (Minecraft Bedrock 2024+)
+$newPath = "$env:APPDATA\Minecraft Bedrock\Users\Shared\games\com.mojang"
+if (Test-Path $newPath) { $paths += @{name="Nueva"; path=$newPath} }
+
+# Ruta UWP (Microsoft Store)
+$uwpBase = "$env:LOCALAPPDATA\Packages"
+$mcFolder = Get-ChildItem $uwpBase -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match "MinecraftUWP_8wekyb3d8bbwe$" } |
+    Select-Object -First 1
+if ($mcFolder) {
+    $uwpPath = Join-Path $mcFolder.FullName "LocalState\games\com.mojang"
+    if (Test-Path $uwpPath) { $paths += @{name="UWP"; path=$uwpPath} }
+}
+
+if ($paths.Count -eq 0) {
+    Write-Host "ERROR: No se encontro ninguna carpeta com.mojang de Minecraft." -ForegroundColor Red
+    Write-Host "  Abre Minecraft al menos una vez y vuelve a ejecutar." -ForegroundColor Cyan
+    exit 1
+}
 
 Write-Host ""
 Write-Host "=== Desplegando Mi Addon a Minecraft ===" -ForegroundColor Cyan
+Write-Host "  Rutas detectadas: $($paths.Count)" -ForegroundColor Gray
 Write-Host ""
 
-# Copiar Behavior Pack
-if (Test-Path $bpDest) {
-    Remove-Item -Recurse -Force $bpDest
-}
-Copy-Item -Recurse -Force $bpSource $bpDest
-Write-Host "[OK] Behavior Pack copiado a:" -ForegroundColor Green
-Write-Host "     $bpDest" -ForegroundColor Gray
+foreach ($target in $paths) {
+    $bpDest = Join-Path $target.path "development_behavior_packs\MiAddon_BP"
+    $rpDest = Join-Path $target.path "development_resource_packs\MiAddon_RP"
 
-# Copiar Resource Pack
-if (Test-Path $rpDest) {
-    Remove-Item -Recurse -Force $rpDest
+    if (Test-Path $bpDest) { Remove-Item -Recurse -Force $bpDest }
+    Copy-Item -Recurse -Force $bpSource $bpDest
+
+    if (Test-Path $rpDest) { Remove-Item -Recurse -Force $rpDest }
+    Copy-Item -Recurse -Force $rpSource $rpDest
+
+    Write-Host "[$($target.name)] Desplegado a:" -ForegroundColor Green
+    Write-Host "     $($target.path)" -ForegroundColor Gray
 }
-Copy-Item -Recurse -Force $rpSource $rpDest
-Write-Host "[OK] Resource Pack copiado a:" -ForegroundColor Green
-Write-Host "     $rpDest" -ForegroundColor Gray
 
 Write-Host ""
 Write-Host "=== Deploy completado ===" -ForegroundColor Green
 Write-Host ""
-Write-Host "Siguiente paso:" -ForegroundColor Yellow
-Write-Host "  1. Abre Minecraft Bedrock en tu PC"
-Write-Host "  2. Crea un mundo nuevo o edita uno existente"
-Write-Host "  3. Ve a 'Behavior Packs' y activa 'Mi Addon - Behavior Pack'"
-Write-Host "  4. Ve a 'Resource Packs' y activa 'Mi Addon - Resource Pack'"
-Write-Host "  5. Juega y prueba tu addon"
-Write-Host ""
-Write-Host "Para recargar cambios: sal del mundo y vuelve a entrar" -ForegroundColor Cyan
+Write-Host "Cierra Minecraft, abrelo de nuevo, y busca 'Mi Addon' en Behavior Packs." -ForegroundColor Yellow
 Write-Host ""

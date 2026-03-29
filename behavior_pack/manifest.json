@@ -1,30 +1,30 @@
 {
-  "format_version": 3,
+  "format_version": 2,
   "header": {
-    "name": "pack.name",
-    "description": "pack.description",
+    "name": "Mi Addon - Behavior Pack",
+    "description": "Addon bíblico con sistema de construcción y efectos de Sansón",
     "uuid": "e446079b-e60b-48f4-a9ae-65ebab1c410b",
-    "version": "1.0.0",
+    "version": [1, 0, 0],
     "min_engine_version": [1, 21, 0]
   },
   "modules": [
     {
       "type": "data",
       "uuid": "001e52a2-1e89-4dd7-a169-29a208629b1d",
-      "version": "1.0.0"
+      "version": [1, 0, 0]
     },
     {
       "type": "script",
       "language": "javascript",
       "uuid": "3760907a-230b-41cf-99d7-9f84f9e05682",
       "entry": "scripts/main.js",
-      "version": "1.0.0"
+      "version": [1, 0, 0]
     }
   ],
   "dependencies": [
     {
       "uuid": "aaf37a1e-4488-450a-a4f1-330f28740046",
-      "version": "1.0.0"
+      "version": [1, 0, 0]
     },
     {
       "module_name": "@minecraft/server",
@@ -36,7 +36,6 @@
     }
   ],
   "metadata": {
-    "authors": ["MiAddon"],
-    "product_type": "addon"
+    "authors": ["MiAddon"]
   }
 }
