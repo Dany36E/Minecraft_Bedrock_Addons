@@ -45,16 +45,16 @@
       },
       {
         "name": "hairLeft", "parent": "head", "pivot": [-3, 24, 0],
-        "cubes": [{ "origin": [-5.5, 6, -1.5], "size": [2, 16, 2], "uv": [56, 0] }]
+        "cubes": [{ "origin": [-5.5, 6, -1.5], "size": [2, 16, 2], "uv": [56, 16] }]
       },
       {
         "name": "hairRight", "parent": "head", "pivot": [3, 24, 0],
         "mirror": true,
-        "cubes": [{ "origin": [3.5, 6, -1.5], "size": [2, 14, 2], "uv": [56, 20] }]
+        "cubes": [{ "origin": [3.5, 6, -1.5], "size": [2, 14, 2], "uv": [48, 34] }]
       },
       {
         "name": "hairBack", "parent": "head", "pivot": [0, 24, 4],
-        "cubes": [{ "origin": [-3, 7, 4], "size": [6, 12, 2], "uv": [40, 32] }]
+        "cubes": [{ "origin": [-3, 7, 4], "size": [6, 12, 2], "uv": [0, 34] }]
       }
     ]
   }]

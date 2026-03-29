@@ -1,9 +1,9 @@
-import { world, system, EquipmentSlot, ItemStack } from "@minecraft/server";
+import { world, system } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 
 // ── Estado global ──────────────────────────────────────
 const transforms = new Map();
-// playerName → { entity, charId, tickCount, lastY }
+// playerName → { entity, charId, tickCount, lastAttackMsg }
 
 // ── Datos de personajes ────────────────────────────────
 const CHARS = {
@@ -18,12 +18,10 @@ const CHARS = {
       "§fEscala: §anormal §f| Fuerza: §asobrehumana",
     effects: [
       ["strength",4,9999],["haste",2,9999],["speed",1,9999],
-      ["resistance",1,9999],["jump_boost",1,9999],["regeneration",0,9999]
+      ["resistance",1,9999],["jump_boost",2,9999],["regeneration",0,9999]
     ],
     msg: "§6§l✦ EL ESPÍRITU DEL SEÑOR VINO SOBRE SANSÓN ✦\n§e§o\"Comenzó a manifestarse en él\" — Jueces 13:25",
-    attackDmg: 12,
-    attackEffect: ["slowness",1,60],
-    jumpBoost: 3
+    attackEffect: ["slowness",1,60]
   },
   dalila: {
     entityType: "miaddon:dalila_entity",
@@ -34,12 +32,11 @@ const CHARS = {
       "§o\"¿Cómo dices que me amas?\" — Jueces 16:15\n\n" +
       "§fEscala: §aligera (0.9×) §f| Velocidad: §aalta",
     effects: [
-      ["speed",1,9999],["night_vision",0,9999],["luck",1,9999]
+      ["speed",1,9999],["night_vision",0,9999],["luck",1,9999],
+      ["jump_boost",1,9999]
     ],
     msg: "§d§l✦ Entras al valle de Sorec como Dalila.\n§7§o\"...se llamaba Dalila\" — Jueces 16:4",
-    attackDmg: 4,
-    attackEffect: ["weakness",2,100],
-    jumpBoost: 2
+    attackEffect: ["weakness",2,100]
   },
   david: {
     entityType: "miaddon:david_entity",
@@ -53,9 +50,7 @@ const CHARS = {
       ["speed",2,9999],["luck",1,9999],["resistance",0,9999],["jump_boost",1,9999]
     ],
     msg: "§b§l✦ El Señor está contigo, David.\n§7§o\"No temas al filisteo\" — I Samuel 17:32",
-    attackDmg: 6,
-    attackEffect: ["slowness",0,40],
-    jumpBoost: 2
+    attackEffect: ["slowness",0,40]
   },
   goliath: {
     entityType: "miaddon:goliath_entity",
@@ -70,9 +65,7 @@ const CHARS = {
       ["slowness",1,9999],["health_boost",3,9999]
     ],
     msg: "§c§l✦ ¡ERES GOLIÁT, CAMPEÓN DE LOS FILISTEOS!\n§c§o\"¡Venid a mí!\" — I Samuel 17:44",
-    attackDmg: 20,
-    attackEffect: ["slowness",2,80],
-    jumpBoost: 0
+    attackEffect: ["slowness",2,80]
   }
 };
 
@@ -147,7 +140,7 @@ function transform(player, charId) {
   transforms.set(player.name, {
     entity, charId,
     tickCount: 0,
-    lastY: pos.y
+    lastAttackMsg: 0
   });
 
   // Hacer invisible al jugador
@@ -226,8 +219,9 @@ system.runInterval(() => {
 
     state.tickCount++;
 
-    // ── RENOVAR INVISIBILIDAD CADA 100 TICKS ──
+    // ── RENOVAR TODOS LOS EFECTOS CADA 100 TICKS ──
     if (state.tickCount % 100 === 0) {
+      const c = CHARS[state.charId];
       try {
         const inv = player.getEffect("invisibility");
         if (!inv || inv.duration < 400) {
@@ -235,19 +229,15 @@ system.runInterval(() => {
             { amplifier: 0, showParticles: false });
         }
       } catch {}
-    }
-
-    // ── DETECTAR SALTO: boost adicional ──
-    const curY = pLoc.y;
-    const rising = curY - (state.lastY ?? curY) > 0.3;
-    state.lastY = curY;
-
-    const c = CHARS[state.charId];
-    if (rising && c.jumpBoost > 0 && state.tickCount % 20 > 10) {
-      try {
-        player.addEffect("jump_boost", 8,
-          { amplifier: c.jumpBoost, showParticles: false });
-      } catch {}
+      for (const [eff, amp, dur] of c.effects) {
+        try {
+          const cur = player.getEffect(eff);
+          if (!cur || cur.duration < 400) {
+            player.addEffect(eff, dur * 20,
+              { amplifier: amp, showParticles: false });
+          }
+        } catch {}
+      }
     }
 
     // ── GOLIÁT: grito de intimidación cada 600 ticks ──
@@ -260,18 +250,21 @@ system.runInterval(() => {
   }
 }, 1);
 
-// ── ATAQUE: interceptar entityHitEntity ────────────────
-world.afterEvents.entityHitEntity.subscribe((ev) => {
-  const attacker = ev.damagingEntity;
+// ── ATAQUE: interceptar entityHurt ─────────────────────
+world.afterEvents.entityHurt.subscribe((ev) => {
+  const source = ev.damageSource;
+  if (source.cause !== "entityAttack") return;
+
+  const attacker = source.damagingEntity;
   if (!attacker || attacker.typeId !== "minecraft:player") return;
 
   const playerName = attacker.name;
   const state = transforms.get(playerName);
   if (!state) return;
 
-  const target = ev.hitEntity;
+  const target = ev.hurtEntity;
   if (!target) return;
-  // No atacar la propia entidad avatar
+  // No procesar la propia entidad avatar
   try {
     if (target === state.entity) return;
   } catch {}
@@ -279,63 +272,53 @@ world.afterEvents.entityHitEntity.subscribe((ev) => {
   const c = CHARS[state.charId];
   const player = attacker;
 
-  // Daño adicional
-  try {
-    target.applyDamage(c.attackDmg,
-      { damagingEntity: player,
-        cause: "entityAttack" });
-  } catch {}
-
-  // Efecto de ataque
+  // Efecto de ataque (debuff al objetivo)
   try {
     target.addEffect(c.attackEffect[0], c.attackEffect[2] * 20,
       { amplifier: c.attackEffect[1], showParticles: true });
   } catch {}
 
-  // Mensajes de ataque temáticos
-  const msgs = {
-    samson:  "§e¡La fuerza del Señor!",
-    dalila:  null,
-    david:   "§b¡En el nombre del Señor de los ejércitos!",
-    goliath: "§c¡MUERE, ISRAELITA!"
-  };
-  const msg = msgs[state.charId];
-  if (msg) player.sendMessage(msg);
+  // Mensajes de ataque temáticos (con cooldown)
+  if (!state.lastAttackMsg || state.tickCount - state.lastAttackMsg > 40) {
+    const msgs = {
+      samson:  "§e¡La fuerza del Señor!",
+      dalila:  null,
+      david:   "§b¡En el nombre del Señor de los ejércitos!",
+      goliath: "§c¡MUERE, ISRAELITA!"
+    };
+    const msg = msgs[state.charId];
+    if (msg) {
+      player.sendMessage(msg);
+      state.lastAttackMsg = state.tickCount;
+    }
+  }
 
   // ── MECÁNICA ESPECIAL: David vs Goliát ──
-  if (state.charId === "david") {
-    try {
-      const nearby = target.dimension.getEntities({
-        type: "miaddon:goliath_entity",
-        maxDistance: 3,
-        location: target.location
-      });
-      if (nearby.length > 0) {
-        target.applyDamage(50, { damagingEntity: player });
+  if (state.charId === "david" && target.typeId === "minecraft:player") {
+    const targetState = transforms.get(target.name);
+    if (targetState?.charId === "goliath") {
+      try {
+        target.applyDamage(50, { damagingEntity: player, cause: "entityAttack" });
         target.addEffect("levitation", 40, { amplifier: 2 });
         player.sendMessage("§b§l\"La piedra hirió al filisteo en la frente\"");
         player.sendMessage("§b§o\"...y cayó sobre su rostro en tierra\" — I Samuel 17:49");
-      }
-    } catch {}
+      } catch {}
+    }
   }
 
   // ── MECÁNICA ESPECIAL: Dalila vs Sansón ──
-  if (state.charId === "dalila") {
-    try {
-      if (target.typeId === "minecraft:player") {
-        const eq = target.getComponent("equippable");
-        const head = eq?.getEquipment(EquipmentSlot.Head);
-        if (head?.typeId === "miaddon:samson_hair") {
-          eq.setEquipment(EquipmentSlot.Head, undefined);
-          target.removeEffect("strength");
-          target.addEffect("weakness", 1200, { amplifier: 4 });
-          target.addEffect("slowness", 1200, { amplifier: 2 });
-          target.sendMessage("§4§l☠ DALILA HA CORTADO TU CABELLO ☠");
-          target.sendMessage("§4§o\"...y su fuerza se apartó de él\" — Jueces 16:19");
-          player.sendMessage("§d✦ Los 1,100 siclos de plata son tuyos.");
-        }
-      }
-    } catch {}
+  if (state.charId === "dalila" && target.typeId === "minecraft:player") {
+    const targetState = transforms.get(target.name);
+    if (targetState?.charId === "samson") {
+      try {
+        target.removeEffect("strength");
+        target.addEffect("weakness", 1200, { amplifier: 4 });
+        target.addEffect("slowness", 1200, { amplifier: 2 });
+        target.sendMessage("§4§l☠ DALILA HA CORTADO TU CABELLO ☠");
+        target.sendMessage("§4§o\"...y su fuerza se apartó de él\" — Jueces 16:19");
+        player.sendMessage("§d✦ Los 1,100 siclos de plata son tuyos.");
+      } catch {}
+    }
   }
 });
 
