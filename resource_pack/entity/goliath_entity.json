@@ -4,28 +4,21 @@
     "description": {
       "identifier": "miaddon:goliath_entity",
       "materials": { "default": "entity_alphatest" },
-      "textures": {
-        "default": "textures/entity/goliath"
-      },
-      "geometry": {
-        "default": "geometry.miaddon.goliath"
-      },
+      "textures": { "default": "textures/entity/goliath" },
+      "geometry": { "default": "geometry.miaddon.goliath" },
       "animations": {
         "biblical.idle": "animation.biblical.idle",
         "biblical.walk": "animation.biblical.walk",
-        "biblical.attack": "animation.biblical.attack",
-        "biblical.jump": "animation.biblical.jump",
         "biblical.sneak": "animation.biblical.sneak",
-        "goliath.taunt": "animation.goliath.taunt",
-        "base_controller": "controller.animation.biblical.base"
+        "ctrl": "controller.animation.biblical.base"
       },
       "scripts": {
-        "animate": ["base_controller"]
+        "animate": ["ctrl"]
       },
-      "render_controllers": ["controller.render.goliath"],
+      "render_controllers": ["controller.render.biblical_default"],
       "spawn_egg": {
         "base_color": "#CD8B3A",
-        "overlay_color": "#8B5A14"
+        "overlay_color": "#1A1A1A"
       }
     }
   }

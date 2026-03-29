@@ -1,470 +1,348 @@
-// characters_menu.js — Sistema de transformación con entidades montables + control completo
-// @minecraft/server 1.12.0 + @minecraft/server-ui 1.3.0
-import { world, system, ItemStack } from "@minecraft/server";
+import { world, system, EquipmentSlot, ItemStack } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 
-// ══════════════════════════════════════════
-// Datos de personajes
-// ══════════════════════════════════════════
-const CHARACTERS = {
+// ── Estado global ──────────────────────────────────────
+const transforms = new Map();
+// playerName → { entity, charId, tickCount, lastY }
+
+// ── Datos de personajes ────────────────────────────────
+const CHARS = {
   samson: {
-    name: "Sansón",
-    ref: "Jueces 13-16",
-    color: "§e",
-    entityId: "miaddon:samson_entity",
-    strikeItemId: "miaddon:strike_samson",
-    attackDamage: 12,
-    desc: "Nazareo desde el vientre de su madre, consagrado a Dios. Su fuerza sobrenatural provenía del Espíritu del Señor, y su señal externa era su cabello largo que nunca fue cortado.",
-    verse: '"...y el Espíritu del Señor comenzó a manifestarse en él." — Jueces 13:25',
-    abilities: "§aFuerza V §7| §aRapidez III §7| §aVelocidad II §7| §aResistencia II §7| §aRegeneración I §7| §aSalto I",
-    transformMsg: [
-      "§6✦ EL ESPÍRITU DEL SEÑOR VINO SOBRE SANSÓN ✦",
-      '§e§o"...y el Espíritu del Señor comenzó a manifestarse en él" — Jueces 13:25',
-    ],
+    entityType: "miaddon:samson_entity",
+    title: "§6§lSansón — Nazareo de Israel",
+    body:
+      "§eJueces 13-16\n" +
+      "§7Juez de Israel. Su fuerza venía del voto sagrado del nazareo.\n\n" +
+      "§o\"El Espíritu del Señor vino poderosamente sobre él\"\n" +
+      "§o— Jueces 14:6\n\n" +
+      "§fEscala: §anormal §f| Fuerza: §asobrehumana",
     effects: [
-      { id: "strength", amp: 4, dur: 999999 },
-      { id: "haste", amp: 2, dur: 999999 },
-      { id: "speed", amp: 1, dur: 999999 },
-      { id: "resistance", amp: 1, dur: 999999 },
-      { id: "jump_boost", amp: 0, dur: 999999 },
-      { id: "regeneration", amp: 0, dur: 999999 },
+      ["strength",4,9999],["haste",2,9999],["speed",1,9999],
+      ["resistance",1,9999],["jump_boost",1,9999],["regeneration",0,9999]
     ],
+    msg: "§6§l✦ EL ESPÍRITU DEL SEÑOR VINO SOBRE SANSÓN ✦\n§e§o\"Comenzó a manifestarse en él\" — Jueces 13:25",
+    attackDmg: 12,
+    attackEffect: ["slowness",1,60],
+    jumpBoost: 3
   },
   dalila: {
-    name: "Dalila",
-    ref: "Jueces 16:4-22",
-    color: "§d",
-    entityId: "miaddon:dalila_entity",
-    strikeItemId: "miaddon:strike_dalila",
-    attackDamage: 4,
-    desc: 'Mujer del valle de Sorec. Los señores filisteos le ofrecieron 1,100 siclos de plata cada uno para descubrir el secreto de la fuerza de Sansón.',
-    verse: '"Después de esto aconteció que se enamoró de una mujer en el valle de Sorec, la cual se llamaba Dalila." — Jueces 16:4',
-    abilities: "§dVelocidad II §7| §dVisión nocturna §7| §dSuerte II",
-    transformMsg: [
-      "§d✦ Entras al valle de Sorec como Dalila.",
-      '§7§o"Después aconteció que se enamoró de una mujer..." — Jueces 16:4',
-    ],
+    entityType: "miaddon:dalila_entity",
+    title: "§d§lDalila — Mujer del Valle de Sorec",
+    body:
+      "§eJueces 16:4-20\n" +
+      "§7Filistea. Recibió 1,100 siclos de plata por traicionar a Sansón.\n\n" +
+      "§o\"¿Cómo dices que me amas?\" — Jueces 16:15\n\n" +
+      "§fEscala: §aligera (0.9×) §f| Velocidad: §aalta",
     effects: [
-      { id: "speed", amp: 1, dur: 999999 },
-      { id: "night_vision", amp: 0, dur: 999999 },
+      ["speed",1,9999],["night_vision",0,9999],["luck",1,9999]
     ],
+    msg: "§d§l✦ Entras al valle de Sorec como Dalila.\n§7§o\"...se llamaba Dalila\" — Jueces 16:4",
+    attackDmg: 4,
+    attackEffect: ["weakness",2,100],
+    jumpBoost: 2
   },
   david: {
-    name: "David",
-    ref: "I Samuel 16-17",
-    color: "§b",
-    entityId: "miaddon:david_entity",
-    strikeItemId: "miaddon:strike_david",
-    attackDamage: 6,
-    desc: 'El menor de los hijos de Isaí, pastor de ovejas en Belén. Rubio, de hermosos ojos y buen parecer. Ungido por Samuel como futuro rey de Israel.',
-    verse: '"Era rubio, de hermosos ojos, y de buen parecer. Entonces el Señor dijo: Levántate y úngelo, porque éste es." — I Samuel 16:12',
-    abilities: "§bVelocidad III §7| §bSuerte II §7| §bResistencia I §7| §bSalto II",
-    transformMsg: [
-      "§b✦ El Espíritu del Señor está contigo, David.",
-      '§7§o"Era rubio, de hermosos ojos, y de buen parecer" — I Samuel 16:12',
-    ],
+    entityType: "miaddon:david_entity",
+    title: "§b§lDavid — Pastor de Belén",
+    body:
+      "§eI Samuel 16-17\n" +
+      "§7Menor de 8 hijos. Rubio, hermosos ojos. Mató a Goliat con una piedra.\n\n" +
+      "§o\"Rubio, de hermosos ojos, y de buen parecer\" — I Samuel 16:12\n\n" +
+      "§fEscala: §ejoven (0.82×) §f| Velocidad: §aágil",
     effects: [
-      { id: "speed", amp: 2, dur: 999999 },
-      { id: "resistance", amp: 0, dur: 999999 },
-      { id: "jump_boost", amp: 1, dur: 999999 },
+      ["speed",2,9999],["luck",1,9999],["resistance",0,9999],["jump_boost",1,9999]
     ],
+    msg: "§b§l✦ El Señor está contigo, David.\n§7§o\"No temas al filisteo\" — I Samuel 17:32",
+    attackDmg: 6,
+    attackEffect: ["slowness",0,40],
+    jumpBoost: 2
   },
   goliath: {
-    name: "Goliát",
-    ref: "I Samuel 17",
-    color: "§c",
-    entityId: "miaddon:goliath_entity",
-    strikeItemId: "miaddon:strike_goliath",
-    attackDamage: 20,
-    desc: 'Campeón de los filisteos de la ciudad de Gat. Medía seis codos y un palmo (2.9 metros). Vestía cota de malla de 5,000 siclos de bronce, grebas de bronce, y jabalina de bronce.',
-    verse: '"¿Por qué habéis salido a presentar batalla? ¡Escoged de entre vosotros un hombre que venga contra mí!" — I Samuel 17:8',
-    abilities: "§cFuerza V §7| §cResistencia IV §7| §cVida extra IV §7| §8Lentitud II",
-    transformMsg: [
-      "§c✦ ERES GOLIÁT, CAMPEÓN DE LOS FILISTEOS.",
-      '§c§o"Un hombre de guerra desde su juventud" — I Samuel 17:33',
-    ],
+    entityType: "miaddon:goliath_entity",
+    title: "§c§lGoliát — Campeón de Gat",
+    body:
+      "§eI Samuel 17:4-7\n" +
+      "§7Altura: 6 codos y 1 palmo = 2.9 m. Armadura: 57 kg de bronce.\n\n" +
+      "§o\"Un hombre de guerra desde su juventud\" — I Samuel 17:33\n\n" +
+      "§fEscala: §cGIGANTE (1.85×) §f| Fuerza: §cdestructiva",
     effects: [
-      { id: "strength", amp: 4, dur: 999999 },
-      { id: "resistance", amp: 3, dur: 999999 },
-      { id: "slowness", amp: 1, dur: 999999 },
-      { id: "health_boost", amp: 3, dur: 999999 },
+      ["strength",4,9999],["resistance",3,9999],
+      ["slowness",1,9999],["health_boost",3,9999]
     ],
-  },
+    msg: "§c§l✦ ¡ERES GOLIÁT, CAMPEÓN DE LOS FILISTEOS!\n§c§o\"¡Venid a mí!\" — I Samuel 17:44",
+    attackDmg: 20,
+    attackEffect: ["slowness",2,80],
+    jumpBoost: 0
+  }
 };
 
-// ══════════════════════════════════════════
-// Estado activo de transformaciones
-// ══════════════════════════════════════════
-/** @type {Map<string, {entity: import("@minecraft/server").Entity, charId: string, invisTick: number, lastY: number, jumpCd: number}>} */
-const activeTransformations = new Map();
-
-// Map strike items → character IDs
-const STRIKE_MAP = {
-  "miaddon:strike_samson": "samson",
-  "miaddon:strike_dalila": "dalila",
-  "miaddon:strike_david": "david",
-  "miaddon:strike_goliath": "goliath",
-};
-
-// ══════════════════════════════════════════
-// Strike item attack system
-// ══════════════════════════════════════════
-world.beforeEvents.itemUse.subscribe((event) => {
-  const player = event.source;
-  const item = event.itemStack;
-  if (!item) return;
-
-  const charId = STRIKE_MAP[item.typeId];
-  if (!charId) return;
-
-  event.cancel = true;
-  system.run(() => performAttack(player, charId));
+// ── LISTENER: Libro de Personajes ──────────────────────
+world.beforeEvents.itemUse.subscribe((ev) => {
+  if (ev.itemStack?.typeId !== "miaddon:characters_book") return;
+  ev.cancel = true;
+  const player = ev.source;
+  if (transforms.has(player.name)) {
+    system.run(() => revert(player));
+  } else {
+    system.run(() => openMenu(player));
+  }
 });
 
-function performAttack(player, charId) {
-  const data = activeTransformations.get(player.name);
-  if (!data || data.charId !== charId) return;
+// ── MENÚ PRINCIPAL ─────────────────────────────────────
+function openMenu(player) {
+  const form = new ActionFormData()
+    .title("§6§l✦ Personajes Bíblicos ✦")
+    .body("§fElige un personaje. Usa el libro de nuevo para revertir.\n§7Tu movimiento y ataque funcionan normalmente.")
+    .button("§l§eSansón§r\n§7Jueces 13-16 · Fuerza sobrehumana")
+    .button("§l§dDalila§r\n§7Jueces 16 · Astucia y traición")
+    .button("§l§bDavid§r\n§7I Samuel 16-17 · Pastor valiente")
+    .button("§l§cGoliát§r\n§7I Samuel 17 · Gigante de Gat")
+    .button("§7Cancelar");
 
-  const ch = CHARACTERS[charId];
-  if (!ch) return;
-
-  try {
-    const loc = player.location;
-    const dir = player.getViewDirection();
-    const dim = player.dimension;
-
-    const hits = dim.getEntities({
-      location: { x: loc.x + dir.x, y: loc.y + dir.y + 1.62, z: loc.z + dir.z },
-      maxDistance: 4,
-      closest: 4,
-      excludeTypes: [ch.entityId],
-    });
-
-    let attacked = false;
-    for (const target of hits) {
-      if (target.id === player.id) continue;
-      if (data.entity?.isValid() && target.id === data.entity.id) continue;
-
-      try {
-        target.applyDamage(ch.attackDamage);
-        attacked = true;
-
-        // Check special interactions
-        const targetData = findTransformByEntity(target);
-        if (targetData) {
-          handleSpecialCombat(player, data, targetData.playerName, targetData.data);
-        }
-      } catch (_) {}
-      break;
-    }
-  } catch (_) {}
-}
-
-function findTransformByEntity(entity) {
-  for (const [playerName, data] of activeTransformations) {
-    if (data.entity?.isValid() && data.entity.id === entity.id) {
-      return { playerName, data };
-    }
-  }
-  return null;
-}
-
-function handleSpecialCombat(attacker, attackerData, targetPlayerName, targetData) {
-  // David vs Goliath
-  if (attackerData.charId === "david" && targetData.charId === "goliath") {
-    try {
-      targetData.entity.applyDamage(50);
-      const targetPlayer = findPlayerByName(targetPlayerName);
-      if (targetPlayer) {
-        targetPlayer.addEffect("levitation", 40, { amplifier: 2, showParticles: true });
-        targetPlayer.sendMessage("§4✦ ¡Una piedra te golpea en la frente!");
-        targetPlayer.sendMessage('§c§o"...y cayó sobre su rostro en tierra" — I Samuel 17:49');
-      }
-      attacker.sendMessage("§b✦ ¡La piedra hirió al filisteo en la frente!");
-      attacker.sendMessage('§b§o"...no con espada ni con lanza salva el Señor" — I Samuel 17:47');
-    } catch (_) {}
-  }
-  // Dalila vs Samson
-  if (attackerData.charId === "dalila" && targetData.charId === "samson") {
-    try {
-      const samsonPlayer = findPlayerByName(targetPlayerName);
-      if (samsonPlayer) {
-        samsonPlayer.addEffect("weakness", 600, { amplifier: 4, showParticles: true });
-        samsonPlayer.addEffect("slowness", 600, { amplifier: 2, showParticles: true });
-        samsonPlayer.sendMessage("§4☠ DALILA TE HA TRAICIONADO — Jueces 16:19");
-        samsonPlayer.sendMessage('§4§o"...ella llamó a un hombre, quien le rapó las siete trenzas"');
-      }
-      attacker.sendMessage("§d✦ Los 1,100 siclos de plata son tuyos.");
-      attacker.sendMessage('§d§o"Ella dijo: ¡Sansón, los filisteos sobre ti!" — Jueces 16:20');
-    } catch (_) {}
-  }
-}
-
-// ══════════════════════════════════════════
-// Listener: uso del Libro de Personajes
-// ══════════════════════════════════════════
-world.beforeEvents.itemUse.subscribe((event) => {
-  const player = event.source;
-  const item = event.itemStack;
-  if (item?.typeId !== "miaddon:characters_book") return;
-  event.cancel = true;
-
-  system.run(() => {
-    if (activeTransformations.has(player.name)) {
-      revertTransformation(player);
-    } else {
-      openCharactersMenu(player);
-    }
-  });
-});
-
-// ══════════════════════════════════════════
-// Menú principal
-// ══════════════════════════════════════════
-function openCharactersMenu(player) {
-  const form = new ActionFormData();
-  form.title("§6§l✦ Personajes Bíblicos ✦");
-  form.body("§fElige a quién quieres encarnar:\n§eCada personaje te transforma visualmente y otorga habilidades bíblicas.\n§7WASD/joystick para mover, botón de ataque para golpear.");
-  form.button("§l§eSansón§r\n§eJueces 13-16 · Nazareo · Superfuerza");
-  form.button("§l§dDalila§r\n§eJueces 16 · Filistea de Sorec");
-  form.button("§l§bDavid§r\n§eI Samuel 16-17 · Pastor de Belén");
-  form.button("§l§cGoliát§r\n§eI Samuel 17 · Gigante de Gat");
-  form.button("§cCerrar");
-
-  form.show(player).then((response) => {
-    if (response.canceled || response.selection === 4) return;
-    const ids = ["samson", "dalila", "david", "goliath"];
-    system.run(() => showCharacterConfirm(player, ids[response.selection]));
+  form.show(player).then((res) => {
+    if (res.canceled || res.selection === 4) return;
+    const keys = ["samson","dalila","david","goliath"];
+    system.run(() => showConfirm(player, keys[res.selection]));
   });
 }
 
-// ══════════════════════════════════════════
-// Pantalla de confirmación con lore bíblico
-// ══════════════════════════════════════════
-function showCharacterConfirm(player, characterId) {
-  const ch = CHARACTERS[characterId];
-  if (!ch) return;
+// ── CONFIRMACIÓN CON LORE ──────────────────────────────
+function showConfirm(player, charId) {
+  const c = CHARS[charId];
+  const form = new ModalFormData()
+    .title(c.title)
+    .textField(c.body, "", "")
+    .toggle("§aConvertirme en este personaje", true);
 
-  const form = new ModalFormData();
-  form.title(`${ch.color}${ch.name}`);
-  form.textField(
-    `§e${ch.ref}\n\n` +
-    `§f${ch.desc}\n\n` +
-    `§o§b${ch.verse}\n\n` +
-    `§r§e━━━━━━━━━━━━━━━━━━━━\n` +
-    `§fHabilidades:\n${ch.abilities}\n` +
-    `§fDaño de ataque: §c${ch.attackDamage}`,
-    "Escribe CONFIRMAR"
-  );
-  form.toggle("§a✦ Transformarme en este personaje", false);
-
-  form.show(player).then((response) => {
-    if (response.canceled) {
-      system.run(() => openCharactersMenu(player));
-      return;
-    }
-    const confirmed = response.formValues[1];
-    if (!confirmed) {
-      system.run(() => openCharactersMenu(player));
-      return;
-    }
-    system.run(() => transformPlayer(player, characterId));
+  form.show(player).then((res) => {
+    if (res.canceled || !res.formValues?.[1]) return;
+    system.run(() => transform(player, charId));
   });
 }
 
-// ══════════════════════════════════════════
-// Transformar jugador — montar entidad con control
-// ══════════════════════════════════════════
-function transformPlayer(player, characterId) {
-  const ch = CHARACTERS[characterId];
-  if (!ch) return;
+// ── TRANSFORMACIÓN ─────────────────────────────────────
+function transform(player, charId) {
+  // Revertir transformación previa si existe
+  if (transforms.has(player.name)) revert(player);
 
-  if (activeTransformations.has(player.name)) {
-    revertTransformation(player, true);
+  const c = CHARS[charId];
+  const pos = player.location;
+  const dim = player.dimension;
+
+  let entity;
+  try {
+    entity = dim.spawnEntity(c.entityType, { x: pos.x, y: pos.y, z: pos.z });
+  } catch(e) {
+    player.sendMessage("§c❌ Error al crear entidad: " + e.message);
+    player.sendMessage("§7Verifica que el addon está desplegado correctamente.");
+    return;
   }
 
-  try {
-    const loc = player.location;
-    const dim = player.dimension;
+  if (!entity) {
+    player.sendMessage("§c❌ No se pudo crear la entidad del personaje.");
+    return;
+  }
 
-    const entity = dim.spawnEntity(ch.entityId, loc);
-    entity.addTag(`owner:${player.name}`);
+  // Guardar estado
+  transforms.set(player.name, {
+    entity, charId,
+    tickCount: 0,
+    lastY: pos.y
+  });
 
-    // Mount the player onto the entity
-    player.runCommand(`ride @s start_riding @e[type=${ch.entityId},c=1,r=3]`);
+  // Hacer invisible al jugador
+  player.addEffect("invisibility", 9999999,
+    { amplifier: 0, showParticles: false });
 
-    // Apply invisibility to hide player model
-    player.addEffect("invisibility", 999999, { amplifier: 0, showParticles: false });
-
-    // Apply character effects
-    for (const eff of ch.effects) {
-      player.addEffect(eff.id, eff.dur, { amplifier: eff.amp, showParticles: false });
-    }
-
-    activeTransformations.set(player.name, { entity, charId: characterId, invisTick: 0, lastY: loc.y, jumpCd: 0 });
-
-    // Give strike item
+  // Aplicar efectos del personaje
+  for (const [eff, amp, dur] of c.effects) {
     try {
-      const strikeItem = new ItemStack(ch.strikeItemId, 1);
-      const inv = player.getComponent("inventory")?.container;
-      if (inv) inv.setItem(0, strikeItem);
-    } catch (_) {}
-
-    for (const msg of ch.transformMsg) {
-      player.sendMessage(msg);
-    }
-    player.sendMessage("§7Usa el §eLibro de Personajes §7de nuevo para revertir.");
-    player.sendMessage("§7Controles: §fWASD/joystick §7= mover, §fBotón ataque §7= golpear");
-
-  } catch (e) {
-    player.sendMessage(`§cError al transformarte: ${e.message || e}`);
+      player.addEffect(eff, dur * 20,
+        { amplifier: amp, showParticles: false });
+    } catch {}
   }
+
+  player.sendMessage(c.msg);
+  player.sendMessage("§7§o[Usa el libro de personajes para revertir]");
 }
 
-// ══════════════════════════════════════════
-// Revertir transformación
-// ══════════════════════════════════════════
-function revertTransformation(player, silent = false) {
-  const data = activeTransformations.get(player.name);
-  if (!data) return;
+// ── REVERTIR ───────────────────────────────────────────
+function revert(player) {
+  const state = transforms.get(player.name);
+  if (!state) return;
 
-  try { player.runCommand("ride @s stop_riding"); } catch (_) {}
-  try { player.removeEffect("invisibility"); } catch (_) {}
+  try { state.entity?.remove(); } catch {}
 
-  // Remove strike item
-  const ch = CHARACTERS[data.charId];
-  try {
-    const inv = player.getComponent("inventory")?.container;
-    if (inv && ch) {
-      for (let i = 0; i < inv.size; i++) {
-        const slot = inv.getItem(i);
-        if (slot?.typeId === ch.strikeItemId) {
-          inv.setItem(i, undefined);
-        }
-      }
-    }
-  } catch (_) {}
-
-  if (ch) {
-    for (const eff of ch.effects) {
-      try { player.removeEffect(eff.id); } catch (_) {}
-    }
+  const allEffects = [
+    "invisibility","strength","haste","speed","resistance",
+    "jump_boost","regeneration","night_vision","luck",
+    "slowness","health_boost","weakness"
+  ];
+  for (const e of allEffects) {
+    try { player.removeEffect(e); } catch {}
   }
 
-  try {
-    if (data.entity?.isValid()) data.entity.remove();
-  } catch (_) {}
-
-  activeTransformations.delete(player.name);
-
-  if (!silent) {
-    player.sendMessage("§a✦ Has vuelto a tu forma normal.");
-  }
+  transforms.delete(player.name);
+  player.sendMessage("§7Has vuelto a ser tú mismo.");
 }
 
-// ══════════════════════════════════════════
-// Main tick loop — invisibility renewal + cleanup
-// ══════════════════════════════════════════
+// ── TICK LOOP: SINCRONIZAR ENTIDAD CON JUGADOR ─────────
 system.runInterval(() => {
-  for (const [playerName, data] of activeTransformations) {
-    // Entity dead/removed → clean up
-    if (!data.entity?.isValid()) {
-      for (const p of world.getAllPlayers()) {
-        if (p.name === playerName) {
-          try { p.removeEffect("invisibility"); } catch (_) {}
-          const ch = CHARACTERS[data.charId];
-          if (ch) {
-            for (const eff of ch.effects) {
-              try { p.removeEffect(eff.id); } catch (_) {}
-            }
-          }
-          break;
-        }
-      }
-      activeTransformations.delete(playerName);
-      continue;
-    }
+  for (const [pName, state] of transforms.entries()) {
 
-    // Player offline → remove entity
-    let player = null;
-    for (const p of world.getAllPlayers()) {
-      if (p.name === playerName) { player = p; break; }
-    }
+    // Buscar el jugador
+    const player = world.getAllPlayers().find(p => p.name === pName);
     if (!player) {
-      try { data.entity.remove(); } catch (_) {}
-      activeTransformations.delete(playerName);
+      try { state.entity?.remove(); } catch {}
+      transforms.delete(pName);
       continue;
     }
 
-    // Renew invisibility every ~800 ticks to prevent flickering
-    data.invisTick = (data.invisTick || 0) + 1;
-    if (data.invisTick >= 40) {
-      data.invisTick = 0;
-      try {
-        player.addEffect("invisibility", 999999, { amplifier: 0, showParticles: false });
-      } catch (_) {}
+    // Verificar entidad válida
+    let valid = false;
+    try { valid = state.entity?.isValid() ?? false; } catch {}
+    if (!valid) {
+      try { player.removeEffect("invisibility"); } catch {}
+      transforms.delete(pName);
+      player.sendMessage("§7Transformación interrumpida.");
+      continue;
     }
 
-    // Jump detection — if player Y increased significantly, make entity jump
-    try {
-      const curY = player.location.y;
-      data.jumpCd = (data.jumpCd || 0) - 1;
-      if (data.lastY !== undefined && (curY - data.lastY) > 0.3 && data.jumpCd <= 0) {
-        data.jumpCd = 30;
-        try {
-          player.addEffect("jump_boost", 10, { amplifier: 2, showParticles: false });
-        } catch (_) {}
-      }
-      data.lastY = curY;
-    } catch (_) {}
-  }
-}, 20);
+    const pLoc = player.location;
 
-// Clean up on player leave
-world.afterEvents.playerLeave.subscribe((event) => {
-  const data = activeTransformations.get(event.playerName);
-  if (data) {
-    try { data.entity.remove(); } catch (_) {}
-    activeTransformations.delete(event.playerName);
+    // ── TELEPORT DE LA ENTIDAD AL JUGADOR ──
+    try {
+      state.entity.teleport(
+        { x: pLoc.x, y: pLoc.y, z: pLoc.z },
+        { dimension: player.dimension,
+          facingLocation: {
+            x: pLoc.x + player.getViewDirection().x,
+            y: pLoc.y + player.getViewDirection().y,
+            z: pLoc.z + player.getViewDirection().z
+          }
+        }
+      );
+    } catch {}
+
+    state.tickCount++;
+
+    // ── RENOVAR INVISIBILIDAD CADA 100 TICKS ──
+    if (state.tickCount % 100 === 0) {
+      try {
+        const inv = player.getEffect("invisibility");
+        if (!inv || inv.duration < 400) {
+          player.addEffect("invisibility", 9999999,
+            { amplifier: 0, showParticles: false });
+        }
+      } catch {}
+    }
+
+    // ── DETECTAR SALTO: boost adicional ──
+    const curY = pLoc.y;
+    const rising = curY - (state.lastY ?? curY) > 0.3;
+    state.lastY = curY;
+
+    const c = CHARS[state.charId];
+    if (rising && c.jumpBoost > 0 && state.tickCount % 20 > 10) {
+      try {
+        player.addEffect("jump_boost", 8,
+          { amplifier: c.jumpBoost, showParticles: false });
+      } catch {}
+    }
+
+    // ── GOLIÁT: grito de intimidación cada 600 ticks ──
+    if (state.charId === "goliath" && state.tickCount % 600 === 300) {
+      try {
+        world.sendMessage("§c[GOLIÁT]: §o\"¿Por qué habéis salido a presentar batalla?\"");
+        world.sendMessage("§c§o\"¡Escoged un hombre que venga contra mí!\" — I Samuel 17:8");
+      } catch {}
+    }
+  }
+}, 1);
+
+// ── ATAQUE: interceptar entityHitEntity ────────────────
+world.afterEvents.entityHitEntity.subscribe((ev) => {
+  const attacker = ev.damagingEntity;
+  if (!attacker || attacker.typeId !== "minecraft:player") return;
+
+  const playerName = attacker.name;
+  const state = transforms.get(playerName);
+  if (!state) return;
+
+  const target = ev.hitEntity;
+  if (!target) return;
+  // No atacar la propia entidad avatar
+  try {
+    if (target === state.entity) return;
+  } catch {}
+
+  const c = CHARS[state.charId];
+  const player = attacker;
+
+  // Daño adicional
+  try {
+    target.applyDamage(c.attackDmg,
+      { damagingEntity: player,
+        cause: "entityAttack" });
+  } catch {}
+
+  // Efecto de ataque
+  try {
+    target.addEffect(c.attackEffect[0], c.attackEffect[2] * 20,
+      { amplifier: c.attackEffect[1], showParticles: true });
+  } catch {}
+
+  // Mensajes de ataque temáticos
+  const msgs = {
+    samson:  "§e¡La fuerza del Señor!",
+    dalila:  null,
+    david:   "§b¡En el nombre del Señor de los ejércitos!",
+    goliath: "§c¡MUERE, ISRAELITA!"
+  };
+  const msg = msgs[state.charId];
+  if (msg) player.sendMessage(msg);
+
+  // ── MECÁNICA ESPECIAL: David vs Goliát ──
+  if (state.charId === "david") {
+    try {
+      const nearby = target.dimension.getEntities({
+        type: "miaddon:goliath_entity",
+        maxDistance: 3,
+        location: target.location
+      });
+      if (nearby.length > 0) {
+        target.applyDamage(50, { damagingEntity: player });
+        target.addEffect("levitation", 40, { amplifier: 2 });
+        player.sendMessage("§b§l\"La piedra hirió al filisteo en la frente\"");
+        player.sendMessage("§b§o\"...y cayó sobre su rostro en tierra\" — I Samuel 17:49");
+      }
+    } catch {}
+  }
+
+  // ── MECÁNICA ESPECIAL: Dalila vs Sansón ──
+  if (state.charId === "dalila") {
+    try {
+      if (target.typeId === "minecraft:player") {
+        const eq = target.getComponent("equippable");
+        const head = eq?.getEquipment(EquipmentSlot.Head);
+        if (head?.typeId === "miaddon:samson_hair") {
+          eq.setEquipment(EquipmentSlot.Head, undefined);
+          target.removeEffect("strength");
+          target.addEffect("weakness", 1200, { amplifier: 4 });
+          target.addEffect("slowness", 1200, { amplifier: 2 });
+          target.sendMessage("§4§l☠ DALILA HA CORTADO TU CABELLO ☠");
+          target.sendMessage("§4§o\"...y su fuerza se apartó de él\" — Jueces 16:19");
+          player.sendMessage("§d✦ Los 1,100 siclos de plata son tuyos.");
+        }
+      }
+    } catch {}
   }
 });
 
-function findPlayerByName(name) {
-  for (const p of world.getAllPlayers()) {
-    if (p.name === name) return p;
-  }
-  return null;
-}
-
-// ══════════════════════════════════════════
-// Goliath intimidation shout (every ~30 seconds)
-// ══════════════════════════════════════════
-let goliatShoutCounter = 0;
-system.runInterval(() => {
-  goliatShoutCounter++;
-  if (goliatShoutCounter < 6) return;
-  goliatShoutCounter = 0;
-
-  for (const [playerName, data] of activeTransformations) {
-    if (data.charId !== "goliath" || !data.entity?.isValid()) continue;
-    const player = findPlayerByName(playerName);
-    if (!player) continue;
-
-    const pos = player.location;
-    for (const other of world.getAllPlayers()) {
-      if (other.name === playerName) continue;
-      const dx = other.location.x - pos.x;
-      const dz = other.location.z - pos.z;
-      if (Math.sqrt(dx * dx + dz * dz) > 30) continue;
-
-      const otherData = activeTransformations.get(other.name);
-      if (otherData?.charId === "david") {
-        other.sendMessage("§b✦ El filisteo te desafía. ¡Derrota al gigante!");
-        player.sendMessage("§4⚠ David se acerca... cuidado con su honda.");
-      } else {
-        other.sendMessage('§4[GOLIÁT]: §c"¿Por qué habéis salido a presentar batalla?"');
-        other.sendMessage("§c§o— I Samuel 17:8");
-      }
-    }
-  }
-}, 100);
+// ── LIMPIEZA AL SALIR ──────────────────────────────────
+world.afterEvents.playerLeave.subscribe((ev) => {
+  const state = transforms.get(ev.playerName);
+  if (!state) return;
+  try { state.entity?.remove(); } catch {}
+  transforms.delete(ev.playerName);
+});

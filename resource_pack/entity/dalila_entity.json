@@ -4,26 +4,20 @@
     "description": {
       "identifier": "miaddon:dalila_entity",
       "materials": { "default": "entity_alphatest" },
-      "textures": {
-        "default": "textures/entity/dalila"
-      },
-      "geometry": {
-        "default": "geometry.miaddon.dalila"
-      },
+      "textures": { "default": "textures/entity/dalila" },
+      "geometry": { "default": "geometry.miaddon.dalila" },
       "animations": {
         "biblical.idle": "animation.biblical.idle",
         "biblical.walk": "animation.biblical.walk",
-        "biblical.attack": "animation.biblical.attack",
-        "biblical.jump": "animation.biblical.jump",
         "biblical.sneak": "animation.biblical.sneak",
-        "base_controller": "controller.animation.biblical.base"
+        "ctrl": "controller.animation.biblical.base"
       },
       "scripts": {
-        "animate": ["base_controller"]
+        "animate": ["ctrl"]
       },
-      "render_controllers": ["controller.render.dalila"],
+      "render_controllers": ["controller.render.biblical_default"],
       "spawn_egg": {
-        "base_color": "#7B3FA0",
+        "base_color": "#4A1A6B",
         "overlay_color": "#C8A020"
       }
     }

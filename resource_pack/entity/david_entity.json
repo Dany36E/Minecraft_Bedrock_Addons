@@ -4,26 +4,20 @@
     "description": {
       "identifier": "miaddon:david_entity",
       "materials": { "default": "entity_alphatest" },
-      "textures": {
-        "default": "textures/entity/david"
-      },
-      "geometry": {
-        "default": "geometry.miaddon.david"
-      },
+      "textures": { "default": "textures/entity/david" },
+      "geometry": { "default": "geometry.miaddon.david" },
       "animations": {
         "biblical.idle": "animation.biblical.idle",
         "biblical.walk": "animation.biblical.walk",
-        "biblical.attack": "animation.biblical.attack",
-        "biblical.jump": "animation.biblical.jump",
         "biblical.sneak": "animation.biblical.sneak",
-        "base_controller": "controller.animation.biblical.base"
+        "ctrl": "controller.animation.biblical.base"
       },
       "scripts": {
-        "animate": ["base_controller"]
+        "animate": ["ctrl"]
       },
-      "render_controllers": ["controller.render.david"],
+      "render_controllers": ["controller.render.biblical_default"],
       "spawn_egg": {
-        "base_color": "#C8734A",
+        "base_color": "#D4845A",
         "overlay_color": "#C85A14"
       }
     }
