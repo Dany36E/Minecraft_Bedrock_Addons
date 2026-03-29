@@ -1,9 +1,18 @@
 {
-  "resource_pack_name": "Mi Addon",
+  "resource_pack_name": "miaddon",
   "texture_name": "atlas.items",
   "texture_data": {
     "miaddon_test_sword": {
       "textures": "textures/items/test_sword"
+    },
+    "miaddon:samson_hair": {
+      "textures": "textures/items/samson_hair"
+    },
+    "miaddon:scissors": {
+      "textures": "textures/items/scissors"
+    },
+    "miaddon:samson_scroll": {
+      "textures": "textures/items/samson_scroll"
     }
   }
 }
