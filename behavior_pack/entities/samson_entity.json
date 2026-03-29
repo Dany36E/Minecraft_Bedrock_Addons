@@ -28,12 +28,14 @@
       },
       "minecraft:jump.static": {},
       "minecraft:can_climb": {},
+      "minecraft:input_ground_controlled": {},
       "minecraft:rideable": {
         "seat_count": 1,
+        "controlling_seat": 0,
         "family_types": ["player"],
         "seats": [
           {
-            "position": [0, 1.6, 0],
+            "position": [0, 1.5, 0],
             "min_rider_count": 0,
             "max_rider_count": 1,
             "rotate_rider_by": "query.body_y_rotation"

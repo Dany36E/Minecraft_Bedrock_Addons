@@ -10,10 +10,21 @@
       "geometry": {
         "default": "geometry.miaddon.samson"
       },
+      "animations": {
+        "biblical.idle": "animation.biblical.idle",
+        "biblical.walk": "animation.biblical.walk",
+        "biblical.attack": "animation.biblical.attack",
+        "biblical.jump": "animation.biblical.jump",
+        "biblical.sneak": "animation.biblical.sneak",
+        "base_controller": "controller.animation.biblical.base"
+      },
+      "scripts": {
+        "animate": ["base_controller"]
+      },
       "render_controllers": ["controller.render.samson"],
       "spawn_egg": {
         "base_color": "#6B3A2A",
-        "overlay_color": "#2C1505"
+        "overlay_color": "#D4B483"
       }
     }
   }

@@ -10,6 +10,17 @@
       "geometry": {
         "default": "geometry.miaddon.dalila"
       },
+      "animations": {
+        "biblical.idle": "animation.biblical.idle",
+        "biblical.walk": "animation.biblical.walk",
+        "biblical.attack": "animation.biblical.attack",
+        "biblical.jump": "animation.biblical.jump",
+        "biblical.sneak": "animation.biblical.sneak",
+        "base_controller": "controller.animation.biblical.base"
+      },
+      "scripts": {
+        "animate": ["base_controller"]
+      },
       "render_controllers": ["controller.render.dalila"],
       "spawn_egg": {
         "base_color": "#7B3FA0",

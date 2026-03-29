@@ -10,6 +10,18 @@
       "geometry": {
         "default": "geometry.miaddon.goliath"
       },
+      "animations": {
+        "biblical.idle": "animation.biblical.idle",
+        "biblical.walk": "animation.biblical.walk",
+        "biblical.attack": "animation.biblical.attack",
+        "biblical.jump": "animation.biblical.jump",
+        "biblical.sneak": "animation.biblical.sneak",
+        "goliath.taunt": "animation.goliath.taunt",
+        "base_controller": "controller.animation.biblical.base"
+      },
+      "scripts": {
+        "animate": ["base_controller"]
+      },
       "render_controllers": ["controller.render.goliath"],
       "spawn_egg": {
         "base_color": "#CD8B3A",

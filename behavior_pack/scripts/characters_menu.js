@@ -1,4 +1,4 @@
-// characters_menu.js — Sistema de transformación con entidades montables (riding system)
+// characters_menu.js — Sistema de transformación con entidades montables + control completo
 // @minecraft/server 1.12.0 + @minecraft/server-ui 1.3.0
 import { world, system } from "@minecraft/server";
 import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
@@ -12,6 +12,7 @@ const CHARACTERS = {
     ref: "Jueces 13-16",
     color: "§e",
     entityId: "miaddon:samson_entity",
+    attackDamage: 12,
     desc: "Nazareo desde el vientre de su madre, consagrado a Dios. Su fuerza sobrenatural provenía del Espíritu del Señor, y su señal externa era su cabello largo que nunca fue cortado.",
     verse: '"...y el Espíritu del Señor comenzó a manifestarse en él." — Jueces 13:25',
     abilities: "§aFuerza V §7| §aRapidez III §7| §aVelocidad II §7| §aResistencia II §7| §aRegeneración I §7| §aSalto I",
@@ -33,6 +34,7 @@ const CHARACTERS = {
     ref: "Jueces 16:4-22",
     color: "§d",
     entityId: "miaddon:dalila_entity",
+    attackDamage: 4,
     desc: 'Mujer del valle de Sorec. Los señores filisteos le ofrecieron 1,100 siclos de plata cada uno para descubrir el secreto de la fuerza de Sansón.',
     verse: '"Después de esto aconteció que se enamoró de una mujer en el valle de Sorec, la cual se llamaba Dalila." — Jueces 16:4',
     abilities: "§dVelocidad II §7| §dVisión nocturna §7| §dSuerte II",
@@ -43,7 +45,6 @@ const CHARACTERS = {
     effects: [
       { id: "speed", amp: 1, dur: 999999 },
       { id: "night_vision", amp: 0, dur: 999999 },
-      { id: "luck", amp: 1, dur: 999999 },
     ],
   },
   david: {
@@ -51,6 +52,7 @@ const CHARACTERS = {
     ref: "I Samuel 16-17",
     color: "§b",
     entityId: "miaddon:david_entity",
+    attackDamage: 6,
     desc: 'El menor de los hijos de Isaí, pastor de ovejas en Belén. Rubio, de hermosos ojos y buen parecer. Ungido por Samuel como futuro rey de Israel.',
     verse: '"Era rubio, de hermosos ojos, y de buen parecer. Entonces el Señor dijo: Levántate y úngelo, porque éste es." — I Samuel 16:12',
     abilities: "§bVelocidad III §7| §bSuerte II §7| §bResistencia I §7| §bSalto II",
@@ -60,7 +62,6 @@ const CHARACTERS = {
     ],
     effects: [
       { id: "speed", amp: 2, dur: 999999 },
-      { id: "luck", amp: 1, dur: 999999 },
       { id: "resistance", amp: 0, dur: 999999 },
       { id: "jump_boost", amp: 1, dur: 999999 },
     ],
@@ -70,6 +71,7 @@ const CHARACTERS = {
     ref: "I Samuel 17",
     color: "§c",
     entityId: "miaddon:goliath_entity",
+    attackDamage: 20,
     desc: 'Campeón de los filisteos de la ciudad de Gat. Medía seis codos y un palmo (2.9 metros). Vestía cota de malla de 5,000 siclos de bronce, grebas de bronce, y jabalina de bronce.',
     verse: '"¿Por qué habéis salido a presentar batalla? ¡Escoged de entre vosotros un hombre que venga contra mí!" — I Samuel 17:8',
     abilities: "§cFuerza V §7| §cResistencia IV §7| §cVida extra IV §7| §8Lentitud II",
@@ -89,7 +91,7 @@ const CHARACTERS = {
 // ══════════════════════════════════════════
 // Estado activo de transformaciones
 // ══════════════════════════════════════════
-/** @type {Map<string, {entity: import("@minecraft/server").Entity, charId: string}>} */
+/** @type {Map<string, {entity: import("@minecraft/server").Entity, charId: string, invisTick: number}>} */
 const activeTransformations = new Map();
 
 // ══════════════════════════════════════════
@@ -116,7 +118,7 @@ world.beforeEvents.itemUse.subscribe((event) => {
 function openCharactersMenu(player) {
   const form = new ActionFormData();
   form.title("§6§l✦ Personajes Bíblicos ✦");
-  form.body("§fElige a quién quieres encarnar:\n§eCada personaje te transforma visualmente y otorga habilidades bíblicas.");
+  form.body("§fElige a quién quieres encarnar:\n§eCada personaje te transforma visualmente y otorga habilidades bíblicas.\n§7WASD/joystick para mover, botón de ataque para golpear.");
   form.button("§l§eSansón§r\n§eJueces 13-16 · Nazareo · Superfuerza");
   form.button("§l§dDalila§r\n§eJueces 16 · Filistea de Sorec");
   form.button("§l§bDavid§r\n§eI Samuel 16-17 · Pastor de Belén");
@@ -144,7 +146,8 @@ function showCharacterConfirm(player, characterId) {
     `§f${ch.desc}\n\n` +
     `§o§b${ch.verse}\n\n` +
     `§r§e━━━━━━━━━━━━━━━━━━━━\n` +
-    `§fHabilidades:\n${ch.abilities}`,
+    `§fHabilidades:\n${ch.abilities}\n` +
+    `§fDaño de ataque: §c${ch.attackDamage}`,
     "Escribe CONFIRMAR"
   );
   form.toggle("§a✦ Transformarme en este personaje", false);
@@ -164,13 +167,12 @@ function showCharacterConfirm(player, characterId) {
 }
 
 // ══════════════════════════════════════════
-// Transformar jugador — montar entidad
+// Transformar jugador — montar entidad con control
 // ══════════════════════════════════════════
 function transformPlayer(player, characterId) {
   const ch = CHARACTERS[characterId];
   if (!ch) return;
 
-  // Revertir transformación previa si existe
   if (activeTransformations.has(player.name)) {
     revertTransformation(player, true);
   }
@@ -179,13 +181,10 @@ function transformPlayer(player, characterId) {
     const loc = player.location;
     const dim = player.dimension;
 
-    // Spawn entity at player position
     const entity = dim.spawnEntity(ch.entityId, loc);
-
-    // Tag entity with owner for cleanup
     entity.addTag(`owner:${player.name}`);
 
-    // Attempt to mount player using ride command
+    // Mount the player onto the entity
     player.runCommand(`ride @s start_riding @e[type=${ch.entityId},c=1,r=3]`);
 
     // Apply invisibility to hide player model
@@ -196,14 +195,13 @@ function transformPlayer(player, characterId) {
       player.addEffect(eff.id, eff.dur, { amplifier: eff.amp, showParticles: false });
     }
 
-    // Store active transformation
-    activeTransformations.set(player.name, { entity, charId: characterId });
+    activeTransformations.set(player.name, { entity, charId: characterId, invisTick: 0 });
 
-    // Send transform messages
     for (const msg of ch.transformMsg) {
       player.sendMessage(msg);
     }
-    player.sendMessage("§7Usa el §eLibro de Personajes §7de nuevo para revertir la transformación.");
+    player.sendMessage("§7Usa el §eLibro de Personajes §7de nuevo para revertir.");
+    player.sendMessage("§7Controles: §fWASD/joystick §7= mover, §fBotón ataque §7= golpear");
 
   } catch (e) {
     player.sendMessage(`§cError al transformarte: ${e.message || e}`);
@@ -217,15 +215,9 @@ function revertTransformation(player, silent = false) {
   const data = activeTransformations.get(player.name);
   if (!data) return;
 
-  try {
-    // Dismount player
-    player.runCommand("ride @s stop_riding");
-  } catch (_) { /* ignore if not riding */ }
-
-  // Remove invisibility
+  try { player.runCommand("ride @s stop_riding"); } catch (_) {}
   try { player.removeEffect("invisibility"); } catch (_) {}
 
-  // Remove character effects
   const ch = CHARACTERS[data.charId];
   if (ch) {
     for (const eff of ch.effects) {
@@ -233,11 +225,8 @@ function revertTransformation(player, silent = false) {
     }
   }
 
-  // Remove entity
   try {
-    if (data.entity?.isValid()) {
-      data.entity.remove();
-    }
+    if (data.entity?.isValid()) data.entity.remove();
   } catch (_) {}
 
   activeTransformations.delete(player.name);
@@ -248,13 +237,12 @@ function revertTransformation(player, silent = false) {
 }
 
 // ══════════════════════════════════════════
-// Cleanup: jugadores desconectados / entidades muertas
+// Main tick loop — invisibility renewal + cleanup
 // ══════════════════════════════════════════
 system.runInterval(() => {
   for (const [playerName, data] of activeTransformations) {
-    // Check if entity is dead/removed
+    // Entity dead/removed → clean up
     if (!data.entity?.isValid()) {
-      // Try to find the player and clean up effects
       for (const p of world.getAllPlayers()) {
         if (p.name === playerName) {
           try { p.removeEffect("invisibility"); } catch (_) {}
@@ -271,182 +259,148 @@ system.runInterval(() => {
       continue;
     }
 
-    // Check if player is still online
-    let playerOnline = false;
+    // Player offline → remove entity
+    let player = null;
     for (const p of world.getAllPlayers()) {
-      if (p.name === playerName) {
-        playerOnline = true;
-        break;
-      }
+      if (p.name === playerName) { player = p; break; }
     }
-    if (!playerOnline) {
+    if (!player) {
       try { data.entity.remove(); } catch (_) {}
       activeTransformations.delete(playerName);
+      continue;
+    }
+
+    // Renew invisibility every ~800 ticks to prevent flickering
+    data.invisTick = (data.invisTick || 0) + 1;
+    if (data.invisTick >= 40) {
+      data.invisTick = 0;
+      try {
+        player.addEffect("invisibility", 999999, { amplifier: 0, showParticles: false });
+      } catch (_) {}
     }
   }
 }, 20);
 
-// Clean up all character entities when player leaves
+// Clean up on player leave
 world.afterEvents.playerLeave.subscribe((event) => {
-  const name = event.playerName;
-  const data = activeTransformations.get(name);
+  const data = activeTransformations.get(event.playerName);
   if (data) {
     try { data.entity.remove(); } catch (_) {}
-    activeTransformations.delete(name);
+    activeTransformations.delete(event.playerName);
   }
 });
 
 // ══════════════════════════════════════════
-// Sistema de efectos por traje equipado
-// ══════════════════════════════════════════
-const equippedState = new Map(); // playerId → characterId
-
-function getEquippedCostume(player) {
-  try {
-    const equip = player.getComponent("equippable");
-    if (!equip) return null;
-    const head = equip.getEquipment(EquipmentSlot.Head);
-    if (!head) return null;
-    for (const [id, ch] of Object.entries(CHARACTERS)) {
-      if (head.typeId === ch.costumeId) return id;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-// Loop de efectos cada 100 ticks (~5 segundos)
-system.runInterval(() => {
-  for (const player of world.getAllPlayers()) {
-    const costume = getEquippedCostume(player);
-    const prev = equippedState.get(player.id);
-
-    // Detectar cambio de traje
-    if (costume !== prev) {
-      if (costume) {
-        const ch = CHARACTERS[costume];
-        for (const msg of ch.equipMsg) player.sendMessage(msg);
-      } else if (prev) {
-        const prevCh = CHARACTERS[prev];
-        player.sendMessage(`§7${prevCh.name} pierde su poder...`);
-      }
-      equippedState.set(player.id, costume);
-    }
-
-    // Aplicar efectos
-    if (costume) {
-      const ch = CHARACTERS[costume];
-      for (const eff of ch.effects) {
-        player.addEffect(eff.id, eff.dur * 20, { amplifier: eff.amp, showParticles: false });
-      }
-    }
-  }
-}, 100);
-
-// ══════════════════════════════════════════
-// Mecánica especial: Dalila vs Sansón
+// Combat — character-specific attack damage + specials
 // ══════════════════════════════════════════
 world.afterEvents.entityHitEntity.subscribe((event) => {
   const attacker = event.damagingEntity;
   const target = event.hitEntity;
+  if (!attacker || !target) return;
 
-  if (attacker?.typeId !== "minecraft:player" || target?.typeId !== "minecraft:player") return;
-
-  const attackerCostume = getEquippedCostume(attacker);
-
-  // Dalila golpea a alguien con samson_hair equipado
-  if (attackerCostume === "dalila") {
-    try {
-      const targetEquip = target.getComponent("equippable");
-      const targetHead = targetEquip?.getEquipment(EquipmentSlot.Head);
-      if (targetHead?.typeId === "miaddon:samson_hair" || targetHead?.typeId === "miaddon:sanson_costume") {
-        // Traición de Dalila
-        target.addEffect("weakness", 1200, { amplifier: 4, showParticles: true });
-        target.addEffect("slowness", 1200, { amplifier: 2, showParticles: true });
-        target.addEffect("mining_fatigue", 1200, { amplifier: 2, showParticles: true });
-
-        // Quitar el casco de Sansón
-        targetEquip.setEquipment(EquipmentSlot.Head, undefined);
-
-        target.sendMessage("§4☠ DALILA TE HA TRAICIONADO — Jueces 16:19");
-        target.sendMessage('§4§o"...ella llamó a un hombre, quien le rapó las siete trenzas de su cabeza"');
-        attacker.sendMessage("§d✦ Los 1,100 siclos de plata son tuyos.");
-        attacker.sendMessage('§d§o"Ella dijo: ¡Sansón, los filisteos sobre ti!" — Jueces 16:20');
-      }
-    } catch { /* ignore */ }
+  // Find if the attacker is riding a character entity
+  let attackerData = null;
+  if (attacker.typeId === "minecraft:player") {
+    attackerData = activeTransformations.get(attacker.name);
   }
 
-  // David golpea a Goliát — daño multiplicado
-  if (attackerCostume === "david") {
+  // Find if the target is a character entity (someone else's mount)
+  let targetPlayerName = null;
+  let targetData = null;
+  for (const [pName, d] of activeTransformations) {
+    if (d.entity?.isValid() && d.entity.id === target.id) {
+      targetPlayerName = pName;
+      targetData = d;
+      break;
+    }
+  }
+
+  // Player-as-character attacks another character entity
+  if (attackerData && targetData) {
+    const attackerCh = CHARACTERS[attackerData.charId];
+    const targetCh = CHARACTERS[targetData.charId];
+
+    // Apply character-specific damage to the entity
     try {
-      const attackerEquip = attacker.getComponent("equippable");
-      const mainhand = attackerEquip?.getEquipment(EquipmentSlot.Mainhand);
-      const targetCostume = getEquippedCostume(target);
+      target.applyDamage(attackerCh.attackDamage);
+    } catch (_) {}
 
-      if (mainhand?.typeId === "miaddon:david_sling" && targetCostume === "goliat") {
-        // La piedra de David hiere al gigante en la frente
-        target.addEffect("instant_damage", 1, { amplifier: 4, showParticles: true });
-        target.addEffect("levitation", 40, { amplifier: 2, showParticles: true });
-
+    // SPECIAL: David vs Goliath — massive bonus damage + levitation
+    if (attackerData.charId === "david" && targetData.charId === "goliath") {
+      try {
+        target.applyDamage(50);
+        const targetPlayer = findPlayerByName(targetPlayerName);
+        if (targetPlayer) {
+          targetPlayer.addEffect("levitation", 40, { amplifier: 2, showParticles: true });
+          targetPlayer.sendMessage("§4✦ ¡Una piedra te golpea en la frente!");
+          targetPlayer.sendMessage('§c§o"...y cayó sobre su rostro en tierra" — I Samuel 17:49');
+        }
         attacker.sendMessage("§b✦ ¡La piedra hirió al filisteo en la frente!");
-        attacker.sendMessage('§b§o"...y cayó sobre su rostro en tierra" — I Samuel 17:49');
-        target.sendMessage("§4✦ ¡Una piedra te golpea en la frente!");
-        target.sendMessage('§c§o"Y satisfágase toda esta satisfacción de saber que no con espada ni con lanza salva el Señor"');
-      }
-    } catch { /* ignore */ }
+        attacker.sendMessage('§b§o"...no con espada ni con lanza salva el Señor" — I Samuel 17:47');
+      } catch (_) {}
+    }
+
+    // SPECIAL: Dalila vs Samson — weakness + weaken samson
+    if (attackerData.charId === "dalila" && targetData.charId === "samson") {
+      try {
+        const samsonPlayer = findPlayerByName(targetPlayerName);
+        if (samsonPlayer) {
+          samsonPlayer.addEffect("weakness", 600, { amplifier: 4, showParticles: true });
+          samsonPlayer.addEffect("slowness", 600, { amplifier: 2, showParticles: true });
+          samsonPlayer.sendMessage("§4☠ DALILA TE HA TRAICIONADO — Jueces 16:19");
+          samsonPlayer.sendMessage('§4§o"...ella llamó a un hombre, quien le rapó las siete trenzas"');
+        }
+        attacker.sendMessage("§d✦ Los 1,100 siclos de plata son tuyos.");
+        attacker.sendMessage('§d§o"Ella dijo: ¡Sansón, los filisteos sobre ti!" — Jueces 16:20');
+      } catch (_) {}
+    }
+  }
+
+  // Player-as-character attacks a regular mob/entity
+  if (attackerData && !targetData && target.typeId !== "minecraft:player") {
+    const attackerCh = CHARACTERS[attackerData.charId];
+    try {
+      target.applyDamage(attackerCh.attackDamage);
+    } catch (_) {}
   }
 });
 
+function findPlayerByName(name) {
+  for (const p of world.getAllPlayers()) {
+    if (p.name === name) return p;
+  }
+  return null;
+}
+
 // ══════════════════════════════════════════
-// Mecánica Goliát: Intimidación periódica
+// Goliath intimidation shout (every ~30 seconds)
 // ══════════════════════════════════════════
-let goliatShoutTick = 0;
+let goliatShoutCounter = 0;
 system.runInterval(() => {
-  goliatShoutTick++;
-  if (goliatShoutTick < 6) return; // cada 6 * 100 = 600 ticks (~30 seg)
-  goliatShoutTick = 0;
+  goliatShoutCounter++;
+  if (goliatShoutCounter < 6) return;
+  goliatShoutCounter = 0;
 
-  for (const player of world.getAllPlayers()) {
-    if (getEquippedCostume(player) !== "goliat") continue;
+  for (const [playerName, data] of activeTransformations) {
+    if (data.charId !== "goliath" || !data.entity?.isValid()) continue;
+    const player = findPlayerByName(playerName);
+    if (!player) continue;
 
-    // Gritar a jugadores cercanos
     const pos = player.location;
     for (const other of world.getAllPlayers()) {
-      if (other.id === player.id) continue;
+      if (other.name === playerName) continue;
       const dx = other.location.x - pos.x;
       const dz = other.location.z - pos.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist > 30) continue;
+      if (Math.sqrt(dx * dx + dz * dz) > 30) continue;
 
-      const otherCostume = getEquippedCostume(other);
-      if (otherCostume === "david") {
-        other.sendMessage("§b✦ El filisteo te desafía. Usa tu honda.");
+      const otherData = activeTransformations.get(other.name);
+      if (otherData?.charId === "david") {
+        other.sendMessage("§b✦ El filisteo te desafía. ¡Derrota al gigante!");
         player.sendMessage("§4⚠ David se acerca... cuidado con su honda.");
       } else {
         other.sendMessage('§4[GOLIÁT]: §c"¿Por qué habéis salido a presentar batalla?"');
-        other.sendMessage('§4"¡Escoged de entre vosotros un hombre que venga contra mí!"');
         other.sendMessage("§c§o— I Samuel 17:8");
       }
     }
   }
 }, 100);
-
-// ══════════════════════════════════════════
-// Mecánica Lanza de Goliát: debuff al golpear
-// ══════════════════════════════════════════
-world.afterEvents.entityHitEntity.subscribe((event) => {
-  const attacker = event.damagingEntity;
-  const target = event.hitEntity;
-
-  if (attacker?.typeId !== "minecraft:player" || target?.typeId !== "minecraft:player") return;
-
-  try {
-    const equip = attacker.getComponent("equippable");
-    const mainhand = equip?.getEquipment(EquipmentSlot.Mainhand);
-    if (mainhand?.typeId === "miaddon:bronze_spear") {
-      target.addEffect("weakness", 100, { amplifier: 1, showParticles: true });
-      target.sendMessage("§c¡La lanza de Goliát!");
-    }
-  } catch { /* ignore */ }
-});

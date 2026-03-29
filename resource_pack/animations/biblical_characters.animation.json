@@ -1,0 +1,185 @@
+{
+  "format_version": "1.8.0",
+  "animations": {
+
+    "animation.biblical.idle": {
+      "loop": true,
+      "animation_length": 2.0,
+      "bones": {
+        "body": {
+          "rotation": ["0", "math.sin(query.anim_time * 90) * 1.5", "0"]
+        },
+        "rightArm": {
+          "rotation": ["math.sin(query.anim_time * 90) * 3", "0", "0"]
+        },
+        "leftArm": {
+          "rotation": ["math.sin(query.anim_time * 90 + 180) * 3", "0", "0"]
+        },
+        "head": {
+          "rotation": [
+            "math.sin(query.anim_time * 60) * 2",
+            "math.sin(query.anim_time * 45) * 5",
+            "0"
+          ]
+        }
+      }
+    },
+
+    "animation.biblical.walk": {
+      "loop": true,
+      "animation_length": 1.0,
+      "bones": {
+        "rightArm": {
+          "rotation": ["math.sin(query.anim_time * 360) * 40", "0", "-5"]
+        },
+        "leftArm": {
+          "rotation": ["math.sin(query.anim_time * 360 + 180) * 40", "0", "5"]
+        },
+        "rightLeg": {
+          "rotation": ["math.sin(query.anim_time * 360 + 180) * 40", "0", "0"]
+        },
+        "leftLeg": {
+          "rotation": ["math.sin(query.anim_time * 360) * 40", "0", "0"]
+        },
+        "body": {
+          "rotation": [
+            "0",
+            "math.sin(query.anim_time * 360) * 3",
+            "math.sin(query.anim_time * 360) * 2"
+          ]
+        },
+        "head": {
+          "rotation": ["-5", "0", "0"]
+        },
+        "hairLeft": {
+          "rotation": [
+            "math.sin(query.anim_time * 360) * 10",
+            "0",
+            "5"
+          ]
+        },
+        "hairRight": {
+          "rotation": [
+            "math.sin(query.anim_time * 360 + 180) * 10",
+            "0",
+            "-5"
+          ]
+        },
+        "hairBack": {
+          "rotation": ["math.sin(query.anim_time * 360) * 8", "0", "0"]
+        }
+      }
+    },
+
+    "animation.biblical.attack": {
+      "loop": false,
+      "animation_length": 0.5,
+      "bones": {
+        "rightArm": {
+          "rotation": {
+            "0.0":  { "post": [-10, 0, -10] },
+            "0.15": { "post": [-130, 0, -20] },
+            "0.4":  { "post": [30, 0, -5] },
+            "0.5":  { "post": [-10, 0, -10] }
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0":  { "post": [0, 15, 0] },
+            "0.15": { "post": [0, -15, 0] },
+            "0.5":  { "post": [0, 0, 0] }
+          }
+        }
+      }
+    },
+
+    "animation.biblical.jump": {
+      "loop": false,
+      "animation_length": 0.6,
+      "bones": {
+        "rightLeg": {
+          "rotation": {
+            "0.0":  { "post": [0, 0, 0] },
+            "0.15": { "post": [-45, 0, 0] },
+            "0.3":  { "post": [20, 0, 0] },
+            "0.6":  { "post": [0, 0, 0] }
+          }
+        },
+        "leftLeg": {
+          "rotation": {
+            "0.0":  { "post": [0, 0, 0] },
+            "0.15": { "post": [-45, 0, 0] },
+            "0.3":  { "post": [20, 0, 0] },
+            "0.6":  { "post": [0, 0, 0] }
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0":  { "post": [0, 0, 0] },
+            "0.15": { "post": [-10, 0, 0] },
+            "0.5":  { "post": [5, 0, 0] },
+            "0.6":  { "post": [0, 0, 0] }
+          }
+        },
+        "rightArm": {
+          "rotation": {
+            "0.0":  { "post": [0, 0, 0] },
+            "0.15": { "post": [-60, 0, 20] },
+            "0.5":  { "post": [20, 0, 10] },
+            "0.6":  { "post": [0, 0, 0] }
+          }
+        },
+        "leftArm": {
+          "rotation": {
+            "0.0":  { "post": [0, 0, 0] },
+            "0.15": { "post": [-60, 0, -20] },
+            "0.5":  { "post": [20, 0, -10] },
+            "0.6":  { "post": [0, 0, 0] }
+          }
+        }
+      }
+    },
+
+    "animation.biblical.sneak": {
+      "loop": true,
+      "animation_length": 1.0,
+      "bones": {
+        "body":     { "rotation": ["30", "0", "0"], "position": ["0", "-3", "0"] },
+        "head":     { "rotation": ["-30", "0", "0"] },
+        "rightLeg": { "rotation": ["30", "0", "0"] },
+        "leftLeg":  { "rotation": ["30", "0", "0"] }
+      }
+    },
+
+    "animation.goliath.taunt": {
+      "loop": false,
+      "animation_length": 2.0,
+      "bones": {
+        "rightArm": {
+          "rotation": {
+            "0.0":  { "post": [0, 0, 0] },
+            "0.5":  { "post": [-90, 0, -30] },
+            "1.0":  { "post": [-90, 20, -30] },
+            "1.5":  { "post": [-90, -20, -30] },
+            "2.0":  { "post": [0, 0, 0] }
+          }
+        },
+        "head": {
+          "rotation": {
+            "0.0": { "post": [0, 0, 0] },
+            "0.5": { "post": [-10, 30, 0] },
+            "1.0": { "post": [-10, -30, 0] },
+            "2.0": { "post": [0, 0, 0] }
+          }
+        },
+        "spear": {
+          "rotation": {
+            "0.0": { "post": [0, 0, 0] },
+            "0.5": { "post": [-20, 0, 10] },
+            "2.0": { "post": [0, 0, 0] }
+          }
+        }
+      }
+    }
+  }
+}

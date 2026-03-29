@@ -1,0 +1,31 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.biblical.base": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["biblical.idle"],
+          "transitions": [
+            { "walking": "query.modified_move_speed > 0.01" },
+            { "sneaking": "query.is_sneaking" }
+          ]
+        },
+        "walking": {
+          "animations": ["biblical.walk"],
+          "transitions": [
+            { "idle": "query.modified_move_speed <= 0.01" },
+            { "sneaking": "query.is_sneaking" }
+          ]
+        },
+        "sneaking": {
+          "animations": ["biblical.sneak"],
+          "transitions": [
+            { "idle": "!query.is_sneaking && query.modified_move_speed <= 0.01" },
+            { "walking": "!query.is_sneaking && query.modified_move_speed > 0.01" }
+          ]
+        }
+      }
+    }
+  }
+}
