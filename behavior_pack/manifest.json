@@ -1,23 +1,27 @@
 {
-  "format_version": 2,
+  "format_version": 3,
   "header": {
-    "name": "Mi Addon - Behavior Pack",
-    "description": "Behavior Pack principal del addon",
+    "name": "pack.name",
+    "description": "pack.description",
     "uuid": "e446079b-e60b-48f4-a9ae-65ebab1c410b",
-    "version": [1, 0, 0],
-    "min_engine_version": [1, 20, 0]
+    "version": "1.0.0",
+    "min_engine_version": "1.20.0"
   },
   "modules": [
     {
       "type": "data",
       "uuid": "001e52a2-1e89-4dd7-a169-29a208629b1d",
-      "version": [1, 0, 0]
+      "version": "1.0.0"
     }
   ],
   "dependencies": [
     {
       "uuid": "aaf37a1e-4488-450a-a4f1-330f28740046",
-      "version": [1, 0, 0]
+      "version": "1.0.0"
     }
-  ]
+  ],
+  "metadata": {
+    "authors": ["MiAddon"],
+    "product_type": "addon"
+  }
 }

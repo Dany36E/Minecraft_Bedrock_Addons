@@ -1,6 +1,5 @@
-## Mi Addon - Traducciones
-pack.name=Mi Addon
-pack.description=Mi primer Add-on de Minecraft Bedrock
+pack.name=Mi Addon - Resource Pack
+pack.description=Resource Pack principal del addon
 
 ## Items
 item.miaddon:test_sword=Test Sword
