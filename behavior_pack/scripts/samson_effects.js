@@ -1,6 +1,6 @@
 // samson_effects.js — Script API principal del Add-on de Sansón
 // @minecraft/server 1.12.0 — Compatible con Xbox Bedrock 1.21.x
-import { world, system, EquipmentSlot } from "@minecraft/server";
+import { world, system, EquipmentSlot, ItemStack } from "@minecraft/server";
 
 // ══════════════════════════════════════════
 // Estado global
@@ -189,3 +189,165 @@ function handleScrollUse(player) {
     }
   });
 }
+
+// ══════════════════════════════════════════
+// DIAGNÓSTICO IN-GAME
+// Usa: /scriptevent miaddon:test
+//      /scriptevent miaddon:test items    → prueba items
+//      /scriptevent miaddon:test effects  → prueba efectos
+//      /scriptevent miaddon:test equip    → prueba equipar/desequipar
+//      /scriptevent miaddon:test all      → prueba todo
+// ══════════════════════════════════════════
+system.afterEvents.scriptEventReceive.subscribe((event) => {
+  if (event.id !== "miaddon:test") return;
+  const player = event.sourceEntity;
+  if (!player || player.typeId !== "minecraft:player") {
+    world.sendMessage("§c[DIAG] Usa este comando como jugador en el chat.");
+    return;
+  }
+
+  const arg = (event.message || "").trim().toLowerCase();
+  const results = { pass: 0, fail: 0, warn: 0, messages: [] };
+
+  function pass(msg) { results.pass++; results.messages.push(`§a  ✅ ${msg}`); }
+  function fail(msg) { results.fail++; results.messages.push(`§c  ❌ ${msg}`); }
+  function warnMsg(msg) { results.warn++; results.messages.push(`§e  ⚠️ ${msg}`); }
+  function info(msg) { results.messages.push(`§7  ℹ ${msg}`); }
+
+  // ── TEST: Items existen y se pueden crear ──
+  if (!arg || arg === "all" || arg === "items") {
+    results.messages.push("§6§l── TEST: ITEMS ──");
+    const testItems = [
+      { id: "miaddon:samson_hair", name: "Cabello de Sansón" },
+      { id: "miaddon:scissors", name: "Tijeras de Dalila" },
+      { id: "miaddon:samson_scroll", name: "Pergamino de Jueces" },
+    ];
+    for (const item of testItems) {
+      try {
+        const stack = new ItemStack(item.id, 1);
+        if (stack.typeId === item.id) {
+          pass(`${item.name} (${item.id}) — se puede crear`);
+          // Check display name
+          if (stack.nameTag) {
+            info(`  nameTag: "${stack.nameTag}"`);
+          }
+        } else {
+          fail(`${item.name} — typeId incorrecto: ${stack.typeId}`);
+        }
+      } catch (e) {
+        fail(`${item.name} (${item.id}) — ERROR: ${e.message}`);
+      }
+    }
+  }
+
+  // ── TEST: Efectos se pueden aplicar ──
+  if (!arg || arg === "all" || arg === "effects") {
+    results.messages.push("§6§l── TEST: EFECTOS ──");
+    const testEffects = [
+      { id: "strength", amp: 4 },
+      { id: "haste", amp: 2 },
+      { id: "speed", amp: 1 },
+      { id: "resistance", amp: 1 },
+      { id: "jump_boost", amp: 0 },
+      { id: "regeneration", amp: 0 },
+      { id: "weakness", amp: 4 },
+      { id: "slowness", amp: 2 },
+      { id: "mining_fatigue", amp: 2 },
+      { id: "blindness", amp: 0 },
+      { id: "nausea", amp: 0 },
+    ];
+    for (const eff of testEffects) {
+      try {
+        player.addEffect(eff.id, 2, { amplifier: eff.amp, showParticles: false });
+        pass(`Efecto "${eff.id}" (amp ${eff.amp}) — aplicado OK`);
+        try { player.removeEffect(eff.id); } catch (e2) {}
+      } catch (e) {
+        fail(`Efecto "${eff.id}" — ERROR: ${e.message}`);
+      }
+    }
+  }
+
+  // ── TEST: Equipment slots ──
+  if (!arg || arg === "all" || arg === "equip") {
+    results.messages.push("§6§l── TEST: EQUIPO ──");
+    const equippable = player.getComponent("equippable");
+    if (!equippable) {
+      fail("El jugador no tiene componente 'equippable'");
+    } else {
+      pass("Componente equippable — presente");
+
+      // Verificar slots accesibles
+      try {
+        const head = equippable.getEquipment(EquipmentSlot.Head);
+        pass(`EquipmentSlot.Head accesible — actual: ${head ? head.typeId : "(vacío)"}`);
+        if (head?.typeId === "miaddon:samson_hair") {
+          pass("¡Cabello de Sansón detectado en la cabeza!");
+          info(`  Estado cursed: ${cursedPlayers.has(player.name) ? "SÍ (maldecido)" : "NO (con poder)"}`);
+          info(`  Estado wearingHair: ${wearingHair.has(player.name)}`);
+        }
+      } catch (e) {
+        fail(`EquipmentSlot.Head — ERROR: ${e.message}`);
+      }
+
+      try {
+        const mainhand = equippable.getEquipment(EquipmentSlot.Mainhand);
+        pass(`EquipmentSlot.Mainhand accesible — actual: ${mainhand ? mainhand.typeId : "(vacío)"}`);
+        if (mainhand?.typeId === "miaddon:scissors") {
+          pass("¡Tijeras en mano detectadas!");
+        }
+      } catch (e) {
+        fail(`EquipmentSlot.Mainhand — ERROR: ${e.message}`);
+      }
+
+      // Test equipar y desequipar el casco
+      try {
+        const originalHead = equippable.getEquipment(EquipmentSlot.Head);
+        const testStack = new ItemStack("miaddon:samson_hair", 1);
+        equippable.setEquipment(EquipmentSlot.Head, testStack);
+        const check = equippable.getEquipment(EquipmentSlot.Head);
+        if (check?.typeId === "miaddon:samson_hair") {
+          pass("setEquipment(Head, samson_hair) — funciona OK");
+        } else {
+          fail("setEquipment(Head) no se aplicó correctamente");
+        }
+        // Restaurar original
+        equippable.setEquipment(EquipmentSlot.Head, originalHead || undefined);
+        pass("Restaurar equipo original — OK");
+      } catch (e) {
+        fail(`Test equipar/desequipar — ERROR: ${e.message}`);
+      }
+    }
+  }
+
+  // ── TEST: Eventos registrados ──
+  if (!arg || arg === "all") {
+    results.messages.push("§6§l── TEST: EVENTOS ──");
+    // No podemos verificar suscripciones directamente, pero podemos confirmar
+    // que el script cargó completamente
+    pass("Script cargó completamente (este mensaje lo demuestra)");
+    info("afterEvents.entityHitEntity — registrado (tijeras left-click)");
+    info("afterEvents.playerInteractWithEntity — registrado (tijeras right-click)");
+    info("afterEvents.itemCompleteUse — registrado (pergamino)");
+    info("afterEvents.scriptEventReceive — registrado (este diagnóstico)");
+    info(`system.currentTick: ${system.currentTick}`);
+    info(`Jugadores online: ${world.getAllPlayers().length}`);
+    info(`cursedPlayers: ${cursedPlayers.size} jugadores maldecidos`);
+    info(`wearingHair: ${wearingHair.size} jugadores con pelo`);
+  }
+
+  // ── RESUMEN ──
+  results.messages.push("");
+  results.messages.push("§6§l════════════════════════════════");
+  if (results.fail === 0) {
+    results.messages.push(`§a§l🎉 TODO OK — ${results.pass} tests pasaron, ${results.warn} warnings`);
+  } else {
+    results.messages.push(`§c§l⚠ ${results.fail} FALLOS — ${results.pass} OK, ${results.warn} warnings`);
+  }
+  results.messages.push("§6§l════════════════════════════════");
+
+  // Enviar resultados
+  player.sendMessage("§6§l═══ DIAGNÓSTICO MI-ADDON ═══");
+  for (const msg of results.messages) {
+    player.sendMessage(msg);
+  }
+});

@@ -2,7 +2,7 @@ pack.name=Mi Addon - Resource Pack
 pack.description=Resource Pack principal del addon
 
 ## Items
-item.miaddon:test_sword=Test Sword
+item.miaddon:test_sword.name=Test Sword
 
 ## Sansón Add-on
 item.miaddon:samson_hair.name=Cabello de Sansón
