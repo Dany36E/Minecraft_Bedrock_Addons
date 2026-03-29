@@ -3,12 +3,16 @@
 
 $ErrorActionPreference = "Stop"
 
-$minecraftPath = "$env:LOCALAPPDATA\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang"
+# Buscar la carpeta de Minecraft (puede variar mayusculas/minusculas)
+$packagesDir = "$env:LOCALAPPDATA\Packages"
+$mcFolder = Get-ChildItem $packagesDir -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match "MinecraftUWP_8wekyb3d8bbwe$" } |
+    Select-Object -First 1
 
-if (-not (Test-Path $minecraftPath)) {
+if (-not $mcFolder) {
     Write-Host ""
     Write-Host "ERROR: No se encontro Minecraft Bedrock instalado en este PC." -ForegroundColor Red
-    Write-Host "Ruta esperada: $minecraftPath" -ForegroundColor Yellow
+    Write-Host "Ruta esperada: $packagesDir\*MinecraftUWP_8wekyb3d8bbwe" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Posibles causas:" -ForegroundColor Yellow
     Write-Host "  - Minecraft Bedrock (Windows 10/11 Edition) no esta instalado"
@@ -16,6 +20,26 @@ if (-not (Test-Path $minecraftPath)) {
     Write-Host "  - Estas usando la version Java (necesitas Bedrock)"
     Write-Host ""
     exit 1
+}
+
+$minecraftPath = Join-Path $mcFolder.FullName "LocalState\games\com.mojang"
+
+if (-not (Test-Path $minecraftPath)) {
+    Write-Host ""
+    Write-Host "AVISO: Minecraft esta instalado pero la carpeta com.mojang no existe." -ForegroundColor Yellow
+    Write-Host "Esto significa que nunca has abierto Minecraft en este PC." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Solucion:" -ForegroundColor Cyan
+    Write-Host "  1. Abre Minecraft Bedrock una vez"
+    Write-Host "  2. Espera a que cargue la pantalla principal"
+    Write-Host "  3. Cierra Minecraft"
+    Write-Host "  4. Vuelve a ejecutar este script"
+    Write-Host ""
+    Write-Host "Creando la estructura de carpetas manualmente..." -ForegroundColor Cyan
+    New-Item -ItemType Directory -Path "$minecraftPath\development_behavior_packs" -Force | Out-Null
+    New-Item -ItemType Directory -Path "$minecraftPath\development_resource_packs" -Force | Out-Null
+    Write-Host "[OK] Carpetas creadas en: $minecraftPath" -ForegroundColor Green
+    Write-Host ""
 }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
