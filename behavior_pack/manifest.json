@@ -17,7 +17,7 @@
       "type": "script",
       "language": "javascript",
       "uuid": "3760907a-230b-41cf-99d7-9f84f9e05682",
-      "entry": "scripts/samson_effects.js",
+      "entry": "scripts/main.js",
       "version": "1.0.0"
     }
   ],
@@ -29,6 +29,10 @@
     {
       "module_name": "@minecraft/server",
       "version": "1.12.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "1.3.0"
     }
   ],
   "metadata": {

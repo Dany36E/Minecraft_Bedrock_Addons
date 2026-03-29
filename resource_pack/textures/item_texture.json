@@ -13,6 +13,9 @@
     },
     "miaddon:samson_scroll": {
       "textures": "textures/items/samson_scroll"
+    },
+    "miaddon:construction_wand": {
+      "textures": "textures/items/construction_wand"
     }
   }
 }

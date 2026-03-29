@@ -11,3 +11,6 @@ item.miaddon:scissors.name=Tijeras de Dalila
 item.miaddon:scissors.description=La herramienta de la traición
 item.miaddon:samson_scroll.name=Pergamino de Jueces
 item.miaddon:samson_scroll.description=La historia de Sansón — Jueces capítulos 13 al 16
+
+## Construcciones Bíblicas
+item.miaddon:construction_wand.name=Vara de Construcción
