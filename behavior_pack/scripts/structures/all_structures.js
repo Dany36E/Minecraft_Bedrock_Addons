@@ -8,6 +8,8 @@ import { medieval_house } from "./medieval_house.js";
 import { well } from "./well.js";
 import { cross } from "./cross.js";
 import { pyramid } from "./pyramid.js";
+import { samsonPrison } from "./samson_prison.js";
+import { dagonTemple } from "./dagon_temple.js";
 
 export const STRUCTURES = {
   ark,
@@ -19,4 +21,6 @@ export const STRUCTURES = {
   well,
   cross,
   pyramid,
+  samson_prison: samsonPrison,
+  dagon_temple: dagonTemple,
 };
