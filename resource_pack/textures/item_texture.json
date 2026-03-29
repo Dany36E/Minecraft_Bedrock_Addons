@@ -16,6 +16,27 @@
     },
     "miaddon:construction_wand": {
       "textures": "textures/items/construction_wand"
+    },
+    "miaddon:characters_book": {
+      "textures": "textures/items/characters_book"
+    },
+    "miaddon:sanson_costume": {
+      "textures": "textures/items/sanson_costume"
+    },
+    "miaddon:dalila_costume": {
+      "textures": "textures/items/dalila_costume"
+    },
+    "miaddon:david_costume": {
+      "textures": "textures/items/david_costume"
+    },
+    "miaddon:goliat_costume": {
+      "textures": "textures/items/goliat_costume"
+    },
+    "miaddon:david_sling": {
+      "textures": "textures/items/david_sling"
+    },
+    "miaddon:bronze_spear": {
+      "textures": "textures/items/bronze_spear"
     }
   }
 }

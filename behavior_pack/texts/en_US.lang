@@ -12,5 +12,14 @@ item.miaddon:samson_scroll.description=La historia de Sansón — Jueces capítu
 ## Construcciones Bíblicas
 item.miaddon:construction_wand.name=Vara de Construcción
 
+## Personajes Bíblicos
+item.miaddon:characters_book.name=Libro de Personajes
+item.miaddon:sanson_costume.name=Traje de Sansón
+item.miaddon:dalila_costume.name=Traje de Dalila
+item.miaddon:david_costume.name=Traje de David
+item.miaddon:goliat_costume.name=Traje de Goliát
+item.miaddon:david_sling.name=Honda de David
+item.miaddon:bronze_spear.name=Lanza de Bronce de Goliát
+
 ## Test
 item.miaddon:test_sword.name=Test Sword

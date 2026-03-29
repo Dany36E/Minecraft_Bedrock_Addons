@@ -1,0 +1,30 @@
+{
+  "skins": [
+    {
+      "localization_name": "sanson",
+      "geometry": "geometry.humanoid.custom",
+      "texture": "sanson.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "dalila",
+      "geometry": "geometry.humanoid.customSlim",
+      "texture": "dalila.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "david",
+      "geometry": "geometry.humanoid.customSlim",
+      "texture": "david.png",
+      "type": "free"
+    },
+    {
+      "localization_name": "goliat",
+      "geometry": "geometry.humanoid.custom",
+      "texture": "goliat.png",
+      "type": "free"
+    }
+  ],
+  "serialize_name": "PersonajesBiblicos",
+  "localization_name": "PersonajesBiblicos"
+}

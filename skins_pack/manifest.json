@@ -1,0 +1,15 @@
+{
+  "format_version": 1,
+  "header": {
+    "name": "Personajes Bíblicos - Skin Pack",
+    "uuid": "b7f6d3a1-9e2c-4f8a-b5d1-e3c7a9f02b14",
+    "version": [1, 0, 0]
+  },
+  "modules": [
+    {
+      "type": "skin_pack",
+      "uuid": "c8a4e2b3-5d1f-4a9c-b6e2-f4d8b0a13c25",
+      "version": [1, 0, 0]
+    }
+  ]
+}
