@@ -8,21 +8,32 @@
           "animations": ["biblical.idle"],
           "transitions": [
             { "walking": "query.property('miaddon:anim_state') == 1" },
-            { "sneaking": "query.property('miaddon:anim_state') == 2" }
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" }
           ]
         },
         "walking": {
           "animations": ["biblical.walk"],
           "transitions": [
             { "idle": "query.property('miaddon:anim_state') == 0" },
-            { "sneaking": "query.property('miaddon:anim_state') == 2" }
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" }
           ]
         },
         "sneaking": {
           "animations": ["biblical.sneak"],
           "transitions": [
             { "idle": "query.property('miaddon:anim_state') == 0" },
-            { "walking": "query.property('miaddon:anim_state') == 1" }
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" }
+          ]
+        },
+        "attacking": {
+          "animations": ["biblical.attack"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" }
           ]
         }
       }

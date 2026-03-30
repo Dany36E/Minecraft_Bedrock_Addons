@@ -1,3 +1,10 @@
+/**
+ * generate_entity_textures.js — Biblical Characters Add-on
+ *
+ * Key design: hat/overlay layers use transparency to reveal the face painted
+ * on the base head layer. Eyes use high-contrast white sclera. Every surface
+ * has at least 2 shades (base + shadow) to avoid flat appearance.
+ */
 const Jimp = require("jimp");
 const path = require("path");
 const OUT = path.join(__dirname, "..", "resource_pack", "textures", "entity");
@@ -8,14 +15,23 @@ function hex(c) { return Jimp.cssColorToHex(c.length === 7 ? c + "FF" : c); }
 function fill(img, x1, y1, x2, y2, c) {
   const h = hex(c);
   for (let x = x1; x <= x2; x++)
-    for (let y = y1; y <= y2; y++)
-      img.setPixelColor(h, x, y);
+    for (let y = y1; y <= y2; y++) img.setPixelColor(h, x, y);
 }
 
-// Paint all 6 faces of a box UV region.
-// UV [U,V], size [W,H,D].
-// colors: { top, bottom, right, front, left, back, all }
-// Returns face rects for further detailing.
+function px(img, x, y, c) { img.setPixelColor(hex(c), x, y); }
+
+function clr(img, x1, y1, x2, y2) {
+  for (let x = x1; x <= x2; x++)
+    for (let y = y1; y <= y2; y++) img.setPixelColor(0x00000000, x, y);
+}
+
+function dither(img, x1, y1, x2, y2, c1, c2) {
+  const h1 = hex(c1), h2 = hex(c2);
+  for (let x = x1; x <= x2; x++)
+    for (let y = y1; y <= y2; y++)
+      img.setPixelColor((x + y) % 2 === 0 ? h1 : h2, x, y);
+}
+
 function paintBox(img, U, V, W, H, D, colors) {
   const f = {
     top:    [U + D,         V,       U + D + W - 1,         V + D - 1],
@@ -33,446 +49,555 @@ function paintBox(img, U, V, W, H, D, colors) {
 }
 
 // ════════════════════════════════════════════════════════
-// SANSÓN — 64×64
-// UV layout (verified non-overlapping):
-//   head      [0,0]   8,8,8  → [0,0]-[31,15]
-//   hat       [32,0]  8,8,8  → [32,0]-[63,15]
-//   rightLeg  [0,16]  4,12,4 → [0,16]-[15,31]
-//   body      [16,16] 8,12,4 → [16,16]-[39,31]
-//   rightArm  [40,16] 4,12,4 → [40,16]-[55,31]
-//   hairLeft  [56,16] 2,16,2 → [56,16]-[63,33]
-//   hairBack  [0,34]  6,12,2 → [0,34]-[15,47]
-//   hairRight [48,34] 2,14,2 → [48,34]-[55,49]
-//   leftLeg   [16,48] 4,12,4 → [16,48]-[31,63]
-//   leftArm   [32,48] 4,12,4 → [32,48]-[47,63]
+// SANSÓN — 64×64 | Jueces 13-16
+// Dark skin, 7 braids (black + brown highlights),
+// thick beard, linen tunic, gold belt.
 // ════════════════════════════════════════════════════════
 async function genSamson() {
   const img = new Jimp(64, 64, 0x00000000);
-  const SKIN    = "#7A4530";
-  const SKIN_S  = "#5A3020";
-  const HAIR    = "#1A0A00";
-  const HAIR_L  = "#3A2A10";
-  const TUNIC   = "#D4B483";
-  const TUNIC_S = "#B09060";
-  const BELT    = "#8B6914";
-  const GOLD    = "#C8A020";
-  const SANDAL  = "#6B3A1A";
+  const SK  = "#7A4530", SKH = "#8B5A40", SKS = "#5A3020", CHIN = "#4A2A18";
+  const HR  = "#1A0A00", HRL = "#3A2A10";
+  const EW  = "#D0C8B0", IR = "#4A2A0A";
+  const BRD = "#2A1A04", BRDD = "#1A0A00", MOUTH = "#6B3030";
+  const TUN = "#D4B483", TUNS = "#B09060", TUND = "#8A7040";
+  const BELT = "#8B6914", GOLD = "#C8A020";
+  const SAND = "#6B3A1A", SANDD = "#4A2A10";
 
   // ── HEAD [0,0] [8,8,8] ──
   paintBox(img, 0, 0, 8, 8, 8, {
-    all: SKIN, top: HAIR, bottom: SKIN_S, back: HAIR
+    top: HR, bottom: CHIN, front: SK, back: HR, right: SK, left: SK
   });
-  // Forehead hair (top 2 rows of front face)
-  fill(img, 8, 8, 15, 9, HAIR);
-  // Temple hair on right side face (back edge 2px)
-  fill(img, 6, 8, 7, 15, HAIR);
-  // Temple hair on left side face (back edge 2px)
-  fill(img, 16, 8, 17, 15, HAIR);
-  // Eyes 2×2
-  fill(img, 10, 10, 11, 11, "#1A0800");
-  fill(img, 12, 10, 13, 11, "#1A0800");
-  // Nose shadow
-  fill(img, 11, 12, 12, 12, SKIN_S);
-  // Mouth
-  fill(img, 10, 13, 13, 13, "#4A1A14");
-  // Beard (lower face)
-  fill(img, 9, 14, 14, 15, "#2A1A04");
+  // Sides: hair on back half
+  fill(img, 4, 8, 7, 15, HR);  fill(img, 0, 15, 3, 15, CHIN);
+  fill(img, 16, 8, 19, 15, HR); fill(img, 20, 15, 23, 15, CHIN);
+
+  // Front face [8,8]-[15,15]
+  fill(img, 8, 8, 15, 8, HR);                                        // y=8:  hair fringe
+  px(img, 8,9,HR); fill(img, 9,9,14,9, SK); px(img, 15,9,HR);       // y=9:  forehead
+  // y=10: eyebrows
+  px(img,8,10,SKS); px(img,9,10,SK);
+  fill(img,10,10,11,10,HR); px(img,12,10,SK); fill(img,13,10,14,10,HR);
+  px(img,15,10,SKS);
+  // y=11: eyes top (2×2, white+iris, iris on inner side)
+  px(img,8,11,SK); px(img,9,11,SK);
+  px(img,10,11,EW); px(img,11,11,IR);
+  px(img,12,11,SK);
+  px(img,13,11,IR); px(img,14,11,EW);
+  px(img,15,11,SK);
+  // y=12: eyes bottom
+  px(img,8,12,SK); px(img,9,12,SK);
+  px(img,10,12,EW); px(img,11,12,IR);
+  px(img,12,12,SK);
+  px(img,13,12,IR); px(img,14,12,EW);
+  px(img,15,12,SK);
+  // y=13: nose
+  fill(img,8,13,10,13,SK); fill(img,11,13,12,13,SKS); fill(img,13,13,15,13,SK);
+  // y=14: beard + mouth
+  px(img,8,14,SKS); fill(img,9,14,10,14,BRD);
+  fill(img,11,14,12,14,MOUTH);
+  fill(img,13,14,14,14,BRD); px(img,15,14,SKS);
+  // y=15: full beard
+  fill(img,8,15,15,15,BRD);
 
   // ── HAT [32,0] [8,8,8] — braids overlay ──
-  paintBox(img, 32, 0, 8, 8, 8, { all: HAIR });
-  for (let x = 34; x <= 62; x += 4) fill(img, x, 0, x + 1, 15, HAIR_L);
-  fill(img, 32, 13, 63, 15, "#4A3A20");
+  paintBox(img, 32, 0, 8, 8, 8, { all: HR });
+  // Braid highlight streaks on all opaque faces
+  dither(img, 40,0, 47,7, HR, HRL);   // top
+  dither(img, 56,8, 63,15, HR, HRL);  // back
+  // Front: hair top 2 rows, side columns rows 2-3, rest transparent
+  dither(img, 40,8, 47,9, HR, HRL);                 // top 2 rows opaque
+  fill(img, 40,10, 40,11, HR); fill(img, 47,10, 47,11, HR); // side cols rows 2-3
+  clr(img, 41,10, 46,11);                           // center transparent (eyes)
+  clr(img, 40,12, 47,15);                           // lower rows transparent (beard)
+  // Sides: upper half hair, lower half transparent
+  dither(img, 32,8, 39,11, HR, HRL); clr(img, 32,12, 39,15);
+  dither(img, 48,8, 55,11, HR, HRL); clr(img, 48,12, 55,15);
+  // Bottom: transparent
+  clr(img, 48,0, 55,7);
 
   // ── BODY [16,16] [8,12,4] ──
   paintBox(img, 16, 16, 8, 12, 4, {
-    all: TUNIC, top: TUNIC_S, bottom: TUNIC_S, right: TUNIC_S, left: TUNIC_S
+    front: TUN, back: TUND, top: TUNS, bottom: TUNS,
+    right: TUNS, left: TUNS
   });
-  // Belt across front + sides + back
-  fill(img, 20, 24, 27, 25, BELT);
-  fill(img, 23, 24, 24, 24, GOLD);
-  fill(img, 16, 24, 19, 25, BELT);
-  fill(img, 28, 24, 31, 25, BELT);
-  fill(img, 32, 24, 39, 25, BELT);
-  // Neckline
-  fill(img, 20, 20, 27, 21, TUNIC_S);
-  // Hem
-  fill(img, 20, 30, 27, 31, TUNIC_S);
+  // Front [20,20]-[27,31]: V-neck, belt, fold shadows
+  fill(img, 23,20, 24,20, SK);  px(img,22,20,TUNS); px(img,25,20,TUNS); // neckline
+  fill(img, 23,21, 24,21, SKS);
+  fill(img, 20,25, 27,25, BELT);  // gold belt
+  fill(img, 20,26, 27,26, GOLD);
+  fill(img, 16,25, 19,26, BELT);  fill(img, 28,25, 31,26, BELT); // side belts
+  fill(img, 32,25, 39,26, BELT);
+  px(img,22,28,TUNS); px(img,25,28,TUNS); // fold shadows
+  px(img,21,29,TUNS); px(img,26,29,TUNS);
+  fill(img, 20,31, 27,31, TUND); // hem
 
   // ── RIGHT ARM [40,16] [4,12,4] ──
-  paintBox(img, 40, 16, 4, 12, 4, { all: SKIN });
-  fill(img, 44, 20, 47, 21, TUNIC); // shoulder
-  fill(img, 40, 20, 43, 21, TUNIC); // side shoulder
-  fill(img, 48, 20, 51, 21, TUNIC);
-  fill(img, 44, 28, 47, 29, BELT);  // wristband
+  paintBox(img, 40, 16, 4, 12, 4, {
+    front: SK, back: SKS, top: TUN, right: SKS, left: SKS, bottom: SKS
+  });
+  // Short sleeve top 4 rows on all faces
+  fill(img,44,20,47,23,TUN); fill(img,40,20,43,23,TUN);
+  fill(img,48,20,51,23,TUN); fill(img,52,20,55,23,TUN);
+  fill(img,44,24,47,24,TUNS); // sleeve hem
+  // Wristband
+  fill(img,44,30,47,31,BELT); fill(img,40,30,43,31,BELT);
 
   // ── LEFT ARM [32,48] [4,12,4] ──
-  paintBox(img, 32, 48, 4, 12, 4, { all: SKIN });
-  fill(img, 36, 52, 39, 53, TUNIC);
-  fill(img, 32, 52, 35, 53, TUNIC);
-  fill(img, 40, 52, 43, 53, TUNIC);
-  fill(img, 36, 60, 39, 61, BELT);
+  paintBox(img, 32, 48, 4, 12, 4, {
+    front: SK, back: SKS, top: TUN, right: SKS, left: SKS, bottom: SKS
+  });
+  fill(img,36,52,39,55,TUN); fill(img,32,52,35,55,TUN);
+  fill(img,40,52,43,55,TUN); fill(img,44,52,47,55,TUN);
+  fill(img,36,56,39,56,TUNS);
+  fill(img,36,62,39,63,BELT); fill(img,32,62,35,63,BELT);
 
   // ── RIGHT LEG [0,16] [4,12,4] ──
-  paintBox(img, 0, 16, 4, 12, 4, { all: TUNIC });
-  fill(img, 4, 26, 7, 29, SKIN);   // exposed leg
-  fill(img, 0, 26, 3, 29, SKIN_S); // side
-  fill(img, 4, 30, 7, 31, SANDAL);
-  fill(img, 0, 30, 3, 31, SANDAL);
+  paintBox(img, 0, 16, 4, 12, 4, {
+    front: TUN, back: TUNS, top: TUN, right: TUNS, left: TUNS, bottom: SANDD
+  });
+  fill(img,4,25,7,25,TUND);                 // hem
+  fill(img,4,26,7,29,SK); fill(img,0,26,3,29,SKS); // exposed leg
+  fill(img,8,26,11,29,SKS);
+  fill(img,4,30,7,31,SAND); fill(img,0,30,3,31,SAND); // sandals
+  fill(img,8,30,11,31,SAND);
 
   // ── LEFT LEG [16,48] [4,12,4] ──
-  paintBox(img, 16, 48, 4, 12, 4, { all: TUNIC });
-  fill(img, 20, 58, 23, 61, SKIN);
-  fill(img, 16, 58, 19, 61, SKIN_S);
-  fill(img, 20, 62, 23, 63, SANDAL);
-  fill(img, 16, 62, 19, 63, SANDAL);
+  paintBox(img, 16, 48, 4, 12, 4, {
+    front: TUN, back: TUNS, top: TUN, right: TUNS, left: TUNS, bottom: SANDD
+  });
+  fill(img,20,57,23,57,TUND);
+  fill(img,20,58,23,61,SK); fill(img,16,58,19,61,SKS);
+  fill(img,24,58,27,61,SKS);
+  fill(img,20,62,23,63,SAND); fill(img,16,62,19,63,SAND);
+  fill(img,24,62,27,63,SAND);
 
   // ── HAIR LEFT [56,16] [2,16,2] ──
-  paintBox(img, 56, 16, 2, 16, 2, { all: HAIR });
-  for (let y = 20; y <= 33; y += 4) fill(img, 58, y, 59, y + 1, HAIR_L);
+  paintBox(img, 56, 16, 2, 16, 2, { all: HR });
+  for (let y = 20; y <= 33; y += 3) fill(img,58,y,59,y,HRL); // highlights
 
   // ── HAIR BACK [0,34] [6,12,2] ──
-  paintBox(img, 0, 34, 6, 12, 2, { all: HAIR });
-  for (let x = 4; x <= 7; x += 4) fill(img, x, 36, x + 1, 47, HAIR_L);
+  paintBox(img, 0, 34, 6, 12, 2, { all: HR });
+  for (let x = 3; x <= 7; x += 2) for (let y = 38; y <= 47; y += 3) px(img,x,y,HRL);
 
   // ── HAIR RIGHT [48,34] [2,14,2] ──
-  paintBox(img, 48, 34, 2, 14, 2, { all: HAIR });
-  for (let y = 38; y <= 49; y += 4) fill(img, 50, y, 51, y + 1, HAIR_L);
+  paintBox(img, 48, 34, 2, 14, 2, { all: HR });
+  for (let y = 38; y <= 49; y += 3) fill(img,50,y,51,y,HRL);
 
   await img.writeAsync(path.join(OUT, "samson.png"));
   console.log("✅ samson.png (64×64)");
 }
 
 // ════════════════════════════════════════════════════════
-// DALILA — 64×64
-// UV layout (verified non-overlapping):
-//   head      [0,0]   8,8,8  → [0,0]-[31,15]
-//   hat       [32,0]  8,8,8  → [32,0]-[63,15]
-//   rightLeg  [0,16]  4,12,4 → [0,16]-[15,31]
-//   body      [16,16] 8,12,4 → [16,16]-[39,31]
-//   rightArm  [40,16] 3,12,4 → [40,16]-[53,31]
-//   veil      [0,32]  8,4,8  → [0,32]-[31,43]
-//   skirt     [32,32] 8,12,3 → [32,32]-[53,46]
-//   leftLeg   [16,48] 4,12,4 → [16,48]-[31,63]
-//   leftArm   [32,48] 3,12,4 → [32,48]-[45,63]
+// DALILA — 64×64 | Jueces 16
+// Olive skin, kohl-rimmed eyes, purple dress, gold
+// accents, veil. Slim arms.
 // ════════════════════════════════════════════════════════
 async function genDalila() {
   const img = new Jimp(64, 64, 0x00000000);
-  const SKIN    = "#B8896A";
-  const SKIN_S  = "#987050";
-  const HAIR    = "#1A0A14";
-  const DRESS   = "#4A1A6B";
-  const DRESS_D = "#3D1A5C";
-  const GOLD    = "#C8A020";
-  const VEIL    = "#7B3FA0";
-  const LIPS    = "#8B3030";
+  const SK  = "#B8896A", SKH = "#D0A080", SKS = "#987050", CHIN = "#A07A5A";
+  const HR  = "#1A0A14", HRL = "#3A2A30";
+  const KOHL = "#0A0A14", EW = "#E8E0D0", IR = "#2A7B4A";
+  const BLUSH = "#D0806A", LIPS = "#8B3030";
+  const DRESS = "#4A1A6B", DRESSD = "#3D1A5C", DRESSDD = "#2D1040";
+  const GOLD = "#C8A020", GOLDD = "#A08018";
+  const VEIL = "#7B3FA0", VEILD = "#5A2A80";
 
   // ── HEAD [0,0] [8,8,8] ──
   paintBox(img, 0, 0, 8, 8, 8, {
-    all: SKIN, top: HAIR, bottom: SKIN_S, back: HAIR
+    top: HR, bottom: CHIN, front: SK, back: HR, right: SK, left: SK
   });
-  // Hair sides
-  fill(img, 0, 8, 1, 15, HAIR);
-  fill(img, 22, 8, 23, 15, HAIR);
-  // Veil line on forehead (2px)
-  fill(img, 8, 8, 15, 9, VEIL);
-  // Diadema gold
-  fill(img, 8, 10, 15, 11, GOLD);
-  // Kohl eyes 2×2
-  fill(img, 9, 12, 10, 13, "#0A0A14");
-  fill(img, 13, 12, 14, 13, "#0A0A14");
-  // Green iris inside eyes
-  fill(img, 10, 12, 10, 13, "#1A6B3A");
-  fill(img, 13, 12, 13, 13, "#1A6B3A");
-  // Lips
-  fill(img, 10, 14, 13, 15, LIPS);
+  fill(img, 5,8, 7,15, HR); fill(img, 0,15, 4,15, CHIN);
+  fill(img, 16,8, 18,15, HR); fill(img, 19,15, 23,15, CHIN);
 
-  // ── HAT [32,0] [8,8,8] — veil/headcovering ──
+  // Front face [8,8]-[15,15]
+  fill(img, 8,8, 15,8, HR);                                          // y=8: hair
+  px(img,8,9,HR); fill(img,9,9,14,9, SK); px(img,15,9,HR);          // y=9: forehead
+  // y=10: kohl eyebrows (heavy)
+  px(img,8,10,SK); px(img,9,10,SK);
+  fill(img,10,10,11,10,KOHL); px(img,12,10,SK); fill(img,13,10,14,10,KOHL);
+  px(img,15,10,SK);
+  // y=11: eyes top (kohl-rimmed: kohl on outer edge)
+  px(img,8,11,SK); px(img,9,11,KOHL);
+  px(img,10,11,EW); px(img,11,11,IR);
+  px(img,12,11,SK);
+  px(img,13,11,IR); px(img,14,11,EW);
+  px(img,15,11,KOHL);
+  // y=12: eyes bottom
+  px(img,8,12,SK); px(img,9,12,KOHL);
+  px(img,10,12,EW); px(img,11,12,IR);
+  px(img,12,12,SK);
+  px(img,13,12,IR); px(img,14,12,EW);
+  px(img,15,12,KOHL);
+  // y=13: cheeks with blush
+  px(img,8,13,SK); px(img,9,13,BLUSH);
+  fill(img,10,13,13,13,SK);
+  px(img,14,13,BLUSH); px(img,15,13,SK);
+  // y=14: nose
+  fill(img,8,14,10,14,SK); fill(img,11,14,12,14,SKS); fill(img,13,14,15,14,SK);
+  // y=15: red lips
+  px(img,8,15,CHIN); px(img,9,15,SK);
+  fill(img,10,15,13,15,LIPS);
+  px(img,14,15,SK); px(img,15,15,CHIN);
+
+  // ── HAT [32,0] [8,8,8] — purple veil ──
   paintBox(img, 32, 0, 8, 8, 8, { all: VEIL });
-  fill(img, 32, 0, 63, 1, GOLD);     // gold upper border
-  fill(img, 32, 14, 63, 15, DRESS_D); // dark lower border
-  // Back portion shows black hair under veil
-  fill(img, 56, 8, 63, 15, HAIR);
+  // Gold diadem band at top of front
+  fill(img, 40,8, 47,8, GOLD);  fill(img, 40,9, 47,9, VEILD);
+  // Front: transparent below diadem to show face
+  clr(img, 41,10, 46,15); // center transparent
+  fill(img,40,10,40,11,VEIL); fill(img,47,10,47,11,VEIL); // side draping
+  clr(img, 40,12, 40,15); clr(img, 47,12, 47,15);
+  // Sides: upper hair + veil, lower transparent
+  fill(img, 32,8, 39,9, GOLD); clr(img, 32,12, 39,15);
+  fill(img, 48,8, 55,9, GOLD); clr(img, 48,12, 55,15);
+  // Back: full hair under veil
+  dither(img, 56,8, 63,15, HR, HRL);
+  // Bottom: transparent
+  clr(img, 48,0, 55,7);
 
   // ── BODY [16,16] [8,12,4] — purple dress ──
   paintBox(img, 16, 16, 8, 12, 4, {
-    all: DRESS, right: DRESS_D, left: DRESS_D
+    front: DRESS, back: DRESSDD, top: DRESSD, bottom: DRESSD,
+    right: DRESSD, left: DRESSD
   });
-  // Collar (red)
-  fill(img, 20, 20, 27, 21, "#8B0000");
-  // Gold accent
-  fill(img, 20, 22, 27, 23, GOLD);
-  // Gold belt
-  fill(img, 20, 24, 27, 25, GOLD);
+  // Front [20,20]-[27,31]:
+  fill(img, 22,20, 25,20, "#8B0000"); // red collar
+  fill(img, 22,21, 25,21, GOLD);      // gold neckline
+  fill(img, 20,24, 27,24, GOLD);      // gold belt
+  fill(img, 20,25, 27,25, GOLDD);
+  fill(img, 16,24, 19,25, GOLD); fill(img, 28,24, 31,25, GOLD); // side belts
+  fill(img, 32,24, 39,25, GOLD);
   // Pleat shadows
-  for (let y = 26; y <= 30; y += 4) fill(img, 20, y, 27, y + 1, DRESS_D);
-  // Hem
-  fill(img, 20, 31, 27, 31, "#2D1040");
-  // Side belts
-  fill(img, 16, 24, 19, 25, GOLD);
-  fill(img, 28, 24, 31, 25, GOLD);
+  px(img,22,28,DRESSDD); px(img,25,28,DRESSDD);
+  px(img,21,30,DRESSDD); px(img,26,30,DRESSDD);
+  fill(img, 20,31, 27,31, DRESSDD); // hem
 
-  // ── RIGHT ARM [40,16] [3,12,4] — slim ──
-  paintBox(img, 40, 16, 3, 12, 4, { all: SKIN });
-  // Sleeve (top 4px of front)
-  fill(img, 44, 20, 46, 23, DRESS);
-  fill(img, 40, 20, 43, 23, DRESS);
-  // Bracelet
-  fill(img, 44, 24, 46, 25, GOLD);
+  // ── RIGHT ARM [40,16] [3,12,4] slim ──
+  paintBox(img, 40, 16, 3, 12, 4, {
+    front: SK, back: SKS, top: DRESS, right: SKS, left: SKS, bottom: SKS
+  });
+  fill(img,44,20,46,23,DRESS); fill(img,40,20,43,23,DRESS);
+  fill(img,47,20,50,23,DRESS); fill(img,51,20,53,23,DRESS);
+  fill(img,44,24,46,24,DRESSD); // sleeve hem
+  fill(img,44,26,46,27,GOLD);   // bracelet
 
-  // ── LEFT ARM [32,48] [3,12,4] — slim ──
-  paintBox(img, 32, 48, 3, 12, 4, { all: SKIN });
-  fill(img, 36, 52, 38, 55, DRESS);
-  fill(img, 32, 52, 35, 55, DRESS);
-  fill(img, 36, 56, 38, 57, GOLD);
+  // ── LEFT ARM [32,48] [3,12,4] slim ──
+  paintBox(img, 32, 48, 3, 12, 4, {
+    front: SK, back: SKS, top: DRESS, right: SKS, left: SKS, bottom: SKS
+  });
+  fill(img,36,52,38,55,DRESS); fill(img,32,52,35,55,DRESS);
+  fill(img,39,52,42,55,DRESS); fill(img,43,52,45,55,DRESS);
+  fill(img,36,56,38,56,DRESSD);
+  fill(img,36,58,38,59,GOLD);
 
   // ── RIGHT LEG [0,16] [4,12,4] — covered by dress ──
-  paintBox(img, 0, 16, 4, 12, 4, { all: DRESS });
-  fill(img, 4, 31, 7, 31, GOLD);    // gold trim at bottom
+  paintBox(img, 0, 16, 4, 12, 4, {
+    front: DRESS, back: DRESSD, top: DRESS, right: DRESSD, left: DRESSD, bottom: DRESSD
+  });
+  fill(img, 4,30, 7,31, GOLD); fill(img, 0,31, 3,31, GOLD); // gold trim bottom
 
   // ── LEFT LEG [16,48] [4,12,4] ──
-  paintBox(img, 16, 48, 4, 12, 4, { all: DRESS });
-  fill(img, 20, 63, 23, 63, GOLD);
+  paintBox(img, 16, 48, 4, 12, 4, {
+    front: DRESS, back: DRESSD, top: DRESS, right: DRESSD, left: DRESSD, bottom: DRESSD
+  });
+  fill(img, 20,62, 23,63, GOLD); fill(img, 16,63, 19,63, GOLD);
 
-  // ── VEIL BONE [0,32] [8,4,8] ──
+  // ── VEIL BONE [0,32] [8,4,8] (inflate 0.6) ──
   paintBox(img, 0, 32, 8, 4, 8, { all: VEIL });
-  fill(img, 8, 32, 15, 33, GOLD);  // gold stripe on top face
-  fill(img, 8, 40, 15, 43, DRESS_D); // darker front bottom
+  // Top: veil with gold edge
+  fill(img, 8,32, 15,32, GOLD); fill(img, 8,33, 15,33, VEILD);
+  // Front [8,40]-[15,43]: top 2 rows veil, bottom 2 transparent
+  fill(img, 8,40, 15,40, VEIL); fill(img, 8,41, 15,41, VEILD);
+  clr(img, 8,42, 15,43);
+  // Sides: top opaque, bottom transparent
+  clr(img, 0,42, 7,43);   // right side lower
+  clr(img, 16,42, 23,43); // left side lower
+  // Bottom: transparent
+  clr(img, 16,32, 23,39);
 
-  // ── SKIRT BONE [32,32] [8,12,3] ──
-  paintBox(img, 32, 32, 8, 12, 3, { all: DRESS_D });
-  // Pleat bands across front (front: x=35..42, y=35..46)
-  for (let y = 37; y <= 46; y += 4) fill(img, 35, y, 42, y + 1, "#2D1040");
-  // Gold trim at bottom of front
-  fill(img, 35, 45, 42, 46, GOLD);
+  // ── SKIRT BONE [32,32] [8,12,3] (inflate 0.3) ──
+  paintBox(img, 32, 32, 8, 12, 3, {
+    front: DRESSD, back: DRESSDD, top: DRESSD,
+    right: DRESSDD, left: DRESSDD, bottom: GOLD
+  });
+  // Pleat shadows on front [35,35]-[42,46]
+  for (let y = 37; y <= 45; y += 4) fill(img, 35,y, 42,y, DRESSDD);
+  // Gold trim at bottom
+  fill(img, 35,45, 42,46, GOLD);
 
   await img.writeAsync(path.join(OUT, "dalila.png"));
   console.log("✅ dalila.png (64×64)");
 }
 
 // ════════════════════════════════════════════════════════
-// DAVID — 64×64
-// UV layout (verified non-overlapping):
-//   head      [0,0]   8,8,8  → [0,0]-[31,15]
-//   hat       [32,0]  8,8,8  → [32,0]-[63,15]
-//   rightLeg  [0,16]  4,12,4 → [0,16]-[15,31]
-//   body      [16,16] 8,12,4 → [16,16]-[39,31]
-//   rightArm  [40,16] 3,12,4 → [40,16]-[53,31]
-//   curlyHair [0,32]  8,4,8  → [0,32]-[31,43]
-//   leftLeg   [16,48] 4,12,4 → [16,48]-[31,63]
-//   leftArm   [32,48] 3,12,4 → [32,48]-[45,63]
+// DAVID — 64×64 | I Samuel 16-17
+// Ruddy/fair skin, copper curly hair, green eyes, rosy
+// cheeks, shepherd tunic, sling strap, rope belt.
 // ════════════════════════════════════════════════════════
 async function genDavid() {
   const img = new Jimp(64, 64, 0x00000000);
-  const SKIN    = "#D4845A";
-  const SKIN_S  = "#B06A40";
-  const HAIR    = "#C85A14";
-  const HAIR_D  = "#A04010";
-  const TUNIC   = "#C09050";
-  const TUNIC_S = "#A07840";
-  const ROPE    = "#5A3A0A";
-  const SLING   = "#8B6030";
-  const SANDAL  = "#8B4513";
+  const SK  = "#D4845A", SKH = "#E0A070", SKS = "#B06A40", CHIN = "#C07A50";
+  const HR  = "#C85A14", HRD = "#A04010", HRL = "#E07030";
+  const EW  = "#E8E0D0", IR = "#3A8B50";
+  const ROSY = "#E8907A", MOUTH = "#D08070";
+  const TUN = "#C09050", TUNS = "#A07840", TUND = "#8A6A30";
+  const ROPE = "#5A3A0A", ROPEL = "#7A5A1A";
+  const SLING = "#8B6030";
+  const SAND = "#8B4513", SANDD = "#6B3A1A";
 
   // ── HEAD [0,0] [8,8,8] ──
   paintBox(img, 0, 0, 8, 8, 8, {
-    all: SKIN, top: HAIR, bottom: SKIN_S, back: HAIR_D
+    top: HR, bottom: SKS, front: SK, back: HRD, right: SK, left: SK
   });
-  // Copper hair on forehead
-  fill(img, 8, 8, 15, 9, HAIR);
-  // Temple hair (sides)
-  fill(img, 0, 8, 1, 15, HAIR);
-  fill(img, 22, 8, 23, 15, HAIR);
-  // Big green eyes 2×2 (young David)
-  fill(img, 10, 10, 11, 11, "#E8E0D0"); // left eye white
-  fill(img, 12, 10, 13, 11, "#E8E0D0"); // right eye white
-  fill(img, 10, 11, 11, 11, "#2A6B5A");  // left iris
-  fill(img, 13, 11, 13, 11, "#2A6B5A");  // right iris
-  // Rosy cheeks
-  fill(img, 8, 13, 9, 13, "#E0906A");
-  fill(img, 14, 13, 15, 13, "#E0906A");
-  // Youthful mouth
-  fill(img, 10, 14, 13, 14, "#C87060");
+  // Sides: hair on back columns
+  fill(img, 4,8, 7,15, HRD); fill(img, 0,15, 3,15, CHIN);
+  fill(img, 16,8, 19,15, HRD); fill(img, 20,15, 23,15, CHIN);
+
+  // Front face [8,8]-[15,15]
+  fill(img, 8,8, 15,8, HR);                                          // y=8: copper fringe
+  px(img,8,9,HRD); fill(img,9,9,14,9, SK); px(img,15,9,HRD);       // y=9: forehead
+  // y=10: eyebrows
+  px(img,8,10,SKS); px(img,9,10,SK);
+  fill(img,10,10,11,10,"#5A3820"); px(img,12,10,SK); fill(img,13,10,14,10,"#5A3820");
+  px(img,15,10,SKS);
+  // y=11: eyes top (2×2, white sclera + green iris)
+  px(img,8,11,SK); px(img,9,11,SK);
+  px(img,10,11,EW); px(img,11,11,IR);
+  px(img,12,11,SK);
+  px(img,13,11,IR); px(img,14,11,EW);
+  px(img,15,11,SK);
+  // y=12: eyes bottom
+  px(img,8,12,SK); px(img,9,12,SK);
+  px(img,10,12,EW); px(img,11,12,IR);
+  px(img,12,12,SK);
+  px(img,13,12,IR); px(img,14,12,EW);
+  px(img,15,12,SK);
+  // y=13: cheeks with blush
+  px(img,8,13,SK); px(img,9,13,ROSY);
+  fill(img,10,13,13,13,SK);
+  px(img,14,13,ROSY); px(img,15,13,SK);
+  // y=14: nose
+  fill(img,8,14,10,14,SK); fill(img,11,14,12,14,SKS); fill(img,13,14,15,14,SK);
+  // y=15: mouth
+  px(img,8,15,CHIN); px(img,9,15,SK);
+  fill(img,10,15,13,15,MOUTH);
+  px(img,14,15,SK); px(img,15,15,CHIN);
 
   // ── HAT [32,0] [8,8,8] — copper curls overlay ──
-  paintBox(img, 32, 0, 8, 8, 8, { all: HAIR });
-  // 2×2 curl pattern (alternating for texture without moiré)
-  for (let bx = 32; bx <= 62; bx += 4)
-    for (let by = 0; by <= 14; by += 4)
-      fill(img, bx, by, bx + 1, by + 1, HAIR_D);
+  paintBox(img, 32, 0, 8, 8, 8, { all: HR });
+  // Top face: curl dither
+  dither(img, 40,0, 47,7, HR, HRD);
+  // Back face: full curls
+  dither(img, 56,8, 63,15, HR, HRD);
+  // Front face: top 2 rows hair, edge columns rows 2-3, rest transparent
+  dither(img, 40,8, 47,9, HR, HRD);
+  for (let y = 8; y <= 9; y++) { px(img,41,y,HRL); px(img,44,y,HRL); } // light highlights
+  fill(img,40,10,40,11,HR); fill(img,47,10,47,11,HR); // side cols
+  clr(img, 41,10, 46,11);   // center transparent (eyes visible)
+  clr(img, 40,12, 47,15);   // lower transparent (face visible)
+  // Sides: upper half curls, lower half transparent
+  dither(img, 32,8, 39,11, HR, HRD); clr(img, 32,12, 39,15);
+  dither(img, 48,8, 55,11, HR, HRD); clr(img, 48,12, 55,15);
+  // Bottom: transparent
+  clr(img, 48,0, 55,7);
 
-  // ── BODY [16,16] [8,12,4] — simple shepherd tunic ──
+  // ── CURLY HAIR [0,32] [8,4,8] (inflate 1.2!) ──
+  paintBox(img, 0, 32, 8, 4, 8, { all: HR });
+  dither(img, 8,32, 15,39, HR, HRL);   // top: bright curls
+  dither(img, 24,40, 31,43, HR, HRD);  // back: dark curls
+  // Front [8,40]-[15,43]: top 2 rows curly, bottom 2 transparent
+  dither(img, 8,40, 15,41, HR, HRL);
+  clr(img, 8,42, 15,43);
+  // Sides: top rows curly, bottom transparent
+  dither(img, 0,40, 7,41, HR, HRD);  clr(img, 0,42, 7,43);
+  dither(img, 16,40, 23,41, HR, HRD); clr(img, 16,42, 23,43);
+  // Bottom: transparent
+  clr(img, 16,32, 23,39);
+
+  // ── BODY [16,16] [8,12,4] — shepherd tunic ──
   paintBox(img, 16, 16, 8, 12, 4, {
-    all: TUNIC, right: TUNIC_S, left: TUNIC_S
+    front: TUN, back: TUND, top: TUNS, bottom: TUNS,
+    right: TUNS, left: TUNS
   });
+  // Front [20,20]-[27,31]:
+  fill(img, 23,20, 24,20, SK); px(img,22,20,TUNS); px(img,25,20,TUNS); // V-neck
+  fill(img, 23,21, 24,21, SKS);
   // Sling strap diagonal
-  fill(img, 20, 22, 21, 31, SLING);
-  fill(img, 22, 25, 27, 26, SLING);
+  px(img,26,22,SLING); px(img,25,23,SLING); px(img,24,24,SLING); px(img,23,25,SLING);
   // Rope belt
-  fill(img, 20, 26, 27, 27, ROPE);
-  // Hem
-  fill(img, 20, 31, 27, 31, TUNIC_S);
+  fill(img, 20,26, 27,26, ROPE); dither(img, 20,27, 27,27, ROPE, ROPEL);
+  fill(img, 16,26, 19,27, ROPE); fill(img, 28,26, 31,27, ROPE);
+  fill(img, 32,26, 39,27, ROPE);
+  // Fold shadows
+  px(img,22,29,TUNS); px(img,25,29,TUNS);
+  px(img,21,30,TUNS); px(img,26,30,TUNS);
+  fill(img, 20,31, 27,31, TUND); // hem
 
-  // ── RIGHT ARM [40,16] [3,12,4] — slim, young ──
-  paintBox(img, 40, 16, 3, 12, 4, { all: SKIN });
-  fill(img, 44, 20, 46, 21, TUNIC); // short sleeve
-  fill(img, 40, 20, 43, 21, TUNIC);
-  fill(img, 44, 28, 46, 29, SLING); // sling on wrist
+  // ── RIGHT ARM [40,16] [3,12,4] slim ──
+  paintBox(img, 40, 16, 3, 12, 4, {
+    front: SK, back: SKS, top: TUN, right: SKS, left: SKS, bottom: SKS
+  });
+  fill(img,44,20,46,22,TUN); fill(img,40,20,43,22,TUN); // sleeve
+  fill(img,47,20,50,22,TUN); fill(img,51,20,53,22,TUN);
+  fill(img,44,23,46,23,TUNS); // hem
+  fill(img,44,29,46,30,SLING); fill(img,40,29,43,30,SLING); // sling wrist
 
-  // ── LEFT ARM [32,48] [3,12,4] ──
-  paintBox(img, 32, 48, 3, 12, 4, { all: SKIN });
-  fill(img, 36, 52, 38, 53, TUNIC);
-  fill(img, 32, 52, 35, 53, TUNIC);
-  fill(img, 36, 60, 38, 61, SLING);
+  // ── LEFT ARM [32,48] [3,12,4] slim ──
+  paintBox(img, 32, 48, 3, 12, 4, {
+    front: SK, back: SKS, top: TUN, right: SKS, left: SKS, bottom: SKS
+  });
+  fill(img,36,52,38,54,TUN); fill(img,32,52,35,54,TUN);
+  fill(img,39,52,42,54,TUN); fill(img,43,52,45,54,TUN);
+  fill(img,36,55,38,55,TUNS);
 
   // ── RIGHT LEG [0,16] [4,12,4] ──
-  paintBox(img, 0, 16, 4, 12, 4, { all: TUNIC });
-  fill(img, 4, 26, 7, 29, SKIN);   // exposed knee
-  fill(img, 0, 26, 3, 29, SKIN_S);
-  fill(img, 4, 30, 7, 31, SANDAL);
-  fill(img, 0, 30, 3, 31, SANDAL);
+  paintBox(img, 0, 16, 4, 12, 4, {
+    front: TUN, back: TUNS, top: TUN, right: TUNS, left: TUNS, bottom: SANDD
+  });
+  fill(img,4,25,7,25,TUND);                 // hem
+  fill(img,4,26,7,29,SK); fill(img,0,26,3,29,SKS); // exposed leg
+  fill(img,8,26,11,29,SKS);
+  fill(img,4,30,7,31,SAND); fill(img,0,30,3,31,SAND); // sandals
+  fill(img,8,30,11,31,SAND);
 
   // ── LEFT LEG [16,48] [4,12,4] ──
-  paintBox(img, 16, 48, 4, 12, 4, { all: TUNIC });
-  fill(img, 20, 58, 23, 61, SKIN);
-  fill(img, 16, 58, 19, 61, SKIN_S);
-  fill(img, 20, 62, 23, 63, SANDAL);
-  fill(img, 16, 62, 19, 63, SANDAL);
-
-  // ── CURLY HAIR [0,32] [8,4,8] ──
-  paintBox(img, 0, 32, 8, 4, 8, { all: HAIR });
-  // Curl highlights (2×2 blocks)
-  for (let bx = 8; bx <= 15; bx += 4)
-    for (let by = 40; by <= 43; by += 4)
-      fill(img, bx, by, bx + 1, by + 1, HAIR_D);
+  paintBox(img, 16, 48, 4, 12, 4, {
+    front: TUN, back: TUNS, top: TUN, right: TUNS, left: TUNS, bottom: SANDD
+  });
+  fill(img,20,57,23,57,TUND);
+  fill(img,20,58,23,61,SK); fill(img,16,58,19,61,SKS);
+  fill(img,24,58,27,61,SKS);
+  fill(img,20,62,23,62,SAND); fill(img,16,62,19,62,SAND);
+  fill(img,24,62,27,62,SAND);
+  fill(img,20,63,23,63,SANDD); fill(img,16,63,19,63,SANDD);
 
   await img.writeAsync(path.join(OUT, "david.png"));
   console.log("✅ david.png (64×64)");
 }
 
 // ════════════════════════════════════════════════════════
-// GOLIÁT — 128×64
-// UV layout (verified non-overlapping):
-//   head      [0,0]   10,10,10 → [0,0]-[39,19]
-//   hat       [44,0]  11,11,11 → [44,0]-[87,21]
-//   body      [0,22]  10,14,5  → [0,22]-[29,40]
-//   rightArm  [40,22] 5,14,5   → [40,22]-[59,40]
-//   leftArm   [40,22] mirror   → same UV
-//   rightLeg  [60,22] 5,12,5   → [60,22]-[79,38]
-//   leftLeg   [60,42] 5,12,5   → [60,42]-[79,58]
-//   crest     [88,0]  2,8,1    → [88,0]-[93,8]
-//   spear     [94,0]  1,28,1   → [94,0]-[97,28]
+// GOLIÁT — 128×64 | I Samuel 17
+// Bronze helmet, visor slit with glowing eyes, chainmail
+// body, gold accents, spear, crest. Giant scale 1.85.
 // ════════════════════════════════════════════════════════
 async function genGoliath() {
   const img = new Jimp(128, 64, 0x00000000);
-  const BRONZE   = "#CD8B3A";
-  const BRONZE_D = "#A07030";
-  const BRONZE_L = "#E0A050";
-  const GOLD     = "#C8A020";
-  const VISOR    = "#0A0A0A";
-  const CHAIN    = "#8B8B8B";
-  const CHAIN_L  = "#A0A0A0";
-  const LEATHER  = "#6B3A1A";
-  const WOOD     = "#3A2010";
+  const BRZ  = "#CD8B3A", BRZD = "#A07030", BRZL = "#E0A050";
+  const GOLD = "#C8A020", GOLDB = "#FFD700";
+  const VISOR = "#0A0A0A", EYE_R = "#BB4410";
+  const CHAIN = "#8B8B8B", CHAINL = "#A8A8A8", CHAIND = "#707070";
+  const LEATH = "#6B3A1A", LEATHD = "#4A2A10";
+  const WOOD = "#3A2010", WOODL = "#5A3820";
 
   // ── HEAD [0,0] [10,10,10] — bronze helmet ──
   paintBox(img, 0, 0, 10, 10, 10, {
-    all: BRONZE, top: GOLD, bottom: BRONZE_D
+    top: GOLD, bottom: BRZD, front: BRZ, back: BRZD,
+    right: BRZD, left: BRZD
   });
-  // Visor slit (black band across front: x=10..19, y=13..14)
-  fill(img, 10, 13, 19, 14, VISOR);
-  // Eyes glinting in visor
-  fill(img, 11, 13, 12, 14, "#3A1A08");
-  fill(img, 17, 13, 18, 14, "#3A1A08");
-  // Nasal guard
-  fill(img, 14, 15, 15, 17, BRONZE_D);
-  // Chin strap
-  fill(img, 10, 19, 19, 19, LEATHER);
-  // Rivets 2×2
-  fill(img, 10, 11, 11, 12, GOLD);
-  fill(img, 18, 11, 19, 12, GOLD);
-  fill(img, 10, 17, 11, 18, GOLD);
-  fill(img, 18, 17, 19, 18, GOLD);
-  // Side shadow bands
-  for (let y = 10; y <= 19; y += 4) {
-    fill(img, 0, y, 9, y + 1, BRONZE_D);
-    fill(img, 20, y, 29, y + 1, BRONZE_D);
-  }
-  // Back of helmet (darker)
-  fill(img, 30, 10, 39, 19, BRONZE_D);
+  // Right side [0,10]-[9,19]: reinforcement lines
+  for (let y = 12; y <= 19; y += 3) fill(img,0,y,9,y,BRZD);
+  // Left side [20,10]-[29,19]
+  for (let y = 12; y <= 19; y += 3) fill(img,20,y,29,y,BRZD);
+  // Back [30,10]-[39,19]: darker with lines
+  fill(img,30,10,39,19,BRZD);
+  for (let y = 13; y <= 19; y += 3) fill(img,30,y,39,y,"#8A6028");
+
+  // Front face [10,10]-[19,19] — helmet with visor
+  fill(img, 10,10, 19,10, BRZ);                                    // y=10: top
+  px(img,11,11,GOLD); fill(img,12,11,17,11,BRZ); px(img,18,11,GOLD); // y=11: rivets
+  fill(img, 10,12, 19,12, BRZD);                                   // y=12: brow ridge
+  fill(img, 10,13, 19,13, VISOR);                                  // y=13: visor top
+  // y=14: eyes in visor
+  px(img,10,14,VISOR); px(img,11,14,EYE_R); px(img,12,14,EYE_R);
+  fill(img,13,14,16,14,VISOR);
+  px(img,17,14,EYE_R); px(img,18,14,EYE_R); px(img,19,14,VISOR);
+  // y=15-16: nasal guard
+  fill(img,10,15,13,15,BRZ); fill(img,14,15,15,15,BRZD); fill(img,16,15,19,15,BRZ);
+  fill(img,10,16,13,16,BRZ); fill(img,14,16,15,16,BRZD); fill(img,16,16,19,16,BRZ);
+  // y=17: lower rivets
+  px(img,11,17,GOLD); fill(img,12,17,17,17,BRZ); px(img,18,17,GOLD);
+  // y=18: helmet bottom
+  fill(img, 10,18, 19,18, BRZ);
+  // y=19: chin strap
+  fill(img, 10,19, 19,19, LEATH);
 
   // ── HAT [44,0] [11,11,11] — helmet overlay ──
-  paintBox(img, 44, 0, 11, 11, 11, { all: BRONZE });
-  // Visor slit on overlay (front: x=55..65, y=11..21)
-  fill(img, 55, 14, 65, 15, VISOR);
-  // Gold crest stripe
-  fill(img, 44, 0, 87, 1, GOLD);
+  paintBox(img, 44, 0, 11, 11, 11, { all: BRZ });
+  // Top: gold crest line
+  fill(img, 55,0, 65,0, GOLD);
+  // Front [55,11]-[65,21]: visor cut-out at rows 3-4
+  fill(img, 55,11, 65,12, BRZ);     // top 2 rows opaque
+  fill(img, 55,13, 55,14, BRZ);     // left edge
+  clr(img, 56,13, 64,14);           // visor cut-out (transparent → eyes show)
+  fill(img, 65,13, 65,14, BRZ);     // right edge
+  fill(img, 55,15, 65,21, BRZ);     // bottom rows opaque
+  // Reinforcement on overlay
+  for (let y = 16; y <= 21; y += 3) fill(img,55,y,65,y,BRZD);
+  // Sides & back: reinforcement
+  for (let y = 14; y <= 21; y += 3) {
+    fill(img,44,y,54,y,BRZD);   // right
+    fill(img,66,y,76,y,BRZD);   // left
+  }
+  // Bottom: bronze
+  fill(img, 66,0, 76,10, BRZD);
 
   // ── BODY [0,22] [10,14,5] — chainmail ──
   paintBox(img, 0, 22, 10, 14, 5, {
-    all: CHAIN, right: BRONZE_D, left: BRONZE_D
+    front: CHAIN, back: CHAIND, top: BRZ, bottom: CHAIND,
+    right: CHAIND, left: CHAIND
   });
-  // Chainmail 2×2 pattern on front (x=5..14, y=27..40)
-  for (let bx = 5; bx <= 13; bx += 4)
-    for (let by = 27; by <= 39; by += 4) {
-      fill(img, bx, by, bx + 1, by + 1, CHAIN_L);
-      fill(img, bx + 2, by + 2, bx + 3, by + 3, CHAIN_L);
-    }
+  // Chainmail dither on front [5,27]-[14,40]
+  dither(img, 5,29, 14,40, CHAIN, CHAINL);
   // Shoulder plates
-  fill(img, 5, 27, 14, 28, GOLD);
-  // Belt
-  fill(img, 5, 33, 14, 34, LEATHER);
-  fill(img, 9, 33, 10, 34, GOLD);
+  fill(img, 5,27, 14,28, GOLD);
+  // Leather belt
+  fill(img, 5,33, 14,34, LEATH); px(img,9,33,GOLD); px(img,10,33,GOLD);
+  // Side belts
+  fill(img, 0,33, 4,34, LEATH); fill(img, 15,33, 19,34, LEATH);
+  fill(img, 20,33, 29,34, LEATH);
 
   // ── RIGHT ARM [40,22] [5,14,5] — chainmail sleeve ──
   paintBox(img, 40, 22, 5, 14, 5, {
-    all: CHAIN, right: BRONZE_D, left: BRONZE_D
+    front: CHAIN, back: CHAIND, top: BRZ,
+    right: CHAIND, left: CHAIND, bottom: CHAIND
   });
-  // Chainmail pattern on front (x=45..49, y=27..40)
-  for (let bx = 45; bx <= 48; bx += 4)
-    for (let by = 27; by <= 39; by += 4) {
-      fill(img, bx, by, bx + 1, by + 1, CHAIN_L);
-      fill(img, bx + 2, by + 2, bx + 3, by + 3, CHAIN_L);
-    }
-  // Shoulder plate
-  fill(img, 45, 27, 49, 28, GOLD);
-  // Gauntlet
-  fill(img, 45, 38, 49, 39, LEATHER);
+  fill(img, 45,27, 49,28, GOLD);  // shoulder plate
+  dither(img, 45,29, 49,38, CHAIN, CHAINL); // chainmail
+  fill(img, 45,39, 49,40, LEATH); // gauntlet
 
   // ── RIGHT LEG [60,22] [5,12,5] — greaves ──
   paintBox(img, 60, 22, 5, 12, 5, {
-    all: BRONZE, right: BRONZE_D, left: BRONZE_D
+    front: BRZ, back: BRZD, top: CHAIN,
+    right: BRZD, left: BRZD, bottom: LEATHD
   });
-  // Thigh chainmail (top of front: x=65..69, y=27..31)
-  for (let bx = 65; bx <= 68; bx += 4)
-    for (let by = 27; by <= 31; by += 4) {
-      fill(img, bx, by, bx + 1, by + 1, CHAIN_L);
-    }
+  // Thigh chainmail on front top
+  dither(img, 65,27, 69,30, CHAIN, CHAINL);
   // Knee plate
-  fill(img, 65, 32, 69, 33, LEATHER);
-  // Greave reinforcement lines
-  for (let y = 34; y <= 38; y += 2) fill(img, 65, y, 69, y, BRONZE_D);
+  fill(img, 65,31, 69,32, LEATH);
+  // Greave lines
+  for (let y = 33; y <= 38; y += 2) fill(img,65,y,69,y,BRZD);
 
   // ── LEFT LEG [60,42] [5,12,5] ──
   paintBox(img, 60, 42, 5, 12, 5, {
-    all: BRONZE, right: BRONZE_D, left: BRONZE_D
+    front: BRZ, back: BRZD, top: CHAIN,
+    right: BRZD, left: BRZD, bottom: LEATHD
   });
-  for (let bx = 65; bx <= 68; bx += 4)
-    for (let by = 47; by <= 51; by += 4) {
-      fill(img, bx, by, bx + 1, by + 1, CHAIN_L);
-    }
-  fill(img, 65, 52, 69, 53, LEATHER);
-  for (let y = 54; y <= 58; y += 2) fill(img, 65, y, 69, y, BRONZE_D);
+  dither(img, 65,47, 69,50, CHAIN, CHAINL);
+  fill(img, 65,51, 69,52, LEATH);
+  for (let y = 53; y <= 58; y += 2) fill(img,65,y,69,y,BRZD);
 
-  // ── HELMET CREST [88,0] [2,8,1] — gold crest ──
+  // ── CREST [88,0] [2,8,1] — gold crest ──
   paintBox(img, 88, 0, 2, 8, 1, { all: GOLD });
-  fill(img, 88, 0, 93, 1, "#FFD700"); // brighter tip
+  fill(img, 89,1, 90,2, GOLDB); // bright tip
 
   // ── SPEAR [94,0] [1,28,1] ──
   paintBox(img, 94, 0, 1, 28, 1, { all: WOOD });
-  // Bronze tip (top 4px of front: x=95, y=1..4)
-  fill(img, 94, 0, 97, 4, BRONZE);
-  // Transition
-  fill(img, 94, 5, 97, 6, BRONZE_D);
+  // Bronze tip (top 5 rows)
+  fill(img, 94,0, 97,1, BRZ);
+  fill(img, 94,2, 97,4, BRZD);
+  fill(img, 94,5, 97,6, BRZL); // transition
+  // Wood grain
+  for (let y = 10; y <= 28; y += 4) fill(img,95,y,95,y,WOODL);
 
   await img.writeAsync(path.join(OUT, "goliath.png"));
   console.log("✅ goliath.png (128×64)");

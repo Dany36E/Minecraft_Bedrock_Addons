@@ -10,6 +10,7 @@
         "biblical.idle": "animation.biblical.idle",
         "biblical.walk": "animation.biblical.walk",
         "biblical.sneak": "animation.biblical.sneak",
+        "biblical.attack": "animation.biblical.attack",
         "ctrl": "controller.animation.biblical.base"
       },
       "scripts": {

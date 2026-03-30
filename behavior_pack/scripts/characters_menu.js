@@ -235,16 +235,19 @@ system.runInterval(() => {
     } catch {}
 
     // ── SINCRONIZAR ESTADO DE ANIMACIÓN ──
+    // Skip if in attack animation window
     try {
-      let animState = 0;
-      if (player.isSneaking) {
-        animState = 2;
-      } else {
-        const vel = player.getVelocity();
-        const horizSpeed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
-        if (horizSpeed > 0.01) animState = 1;
+      if (!state.attackUntil || state.tickCount >= state.attackUntil) {
+        let animState = 0;
+        if (player.isSneaking) {
+          animState = 2;
+        } else {
+          const vel = player.getVelocity();
+          const horizSpeed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+          if (horizSpeed > 0.01) animState = 1;
+        }
+        state.entity.setProperty("miaddon:anim_state", animState);
       }
-      state.entity.setProperty("miaddon:anim_state", animState);
     } catch {}
 
     state.tickCount++;
@@ -301,6 +304,12 @@ world.afterEvents.entityHurt.subscribe((ev) => {
 
   const c = CHARS[state.charId];
   const player = attacker;
+
+  // ── TRIGGER ATTACK ANIMATION ──
+  try {
+    state.entity.setProperty("miaddon:anim_state", 3);
+    state.attackUntil = state.tickCount + 10; // 0.5s attack window
+  } catch {}
 
   // Efecto de ataque (debuff al objetivo)
   try {
