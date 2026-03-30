@@ -1,9 +1,25 @@
 import { world, system } from "@minecraft/server";
-import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
+import { ActionFormData, MessageFormData } from "@minecraft/server-ui";
 
 // ── Estado global ──────────────────────────────────────
 const transforms = new Map();
 // playerName → { entity, charId, tickCount, lastAttackMsg }
+
+// ── Limpieza de entidades huérfanas al cargar ──────────
+const GHOST_TYPES = [
+  "miaddon:samson_entity", "miaddon:dalila_entity",
+  "miaddon:david_entity",  "miaddon:goliath_entity"
+];
+system.runTimeout(() => {
+  try {
+    const dim = world.getDimension("overworld");
+    for (const type of GHOST_TYPES) {
+      for (const ent of dim.getEntities({ type })) {
+        try { ent.remove(); } catch {}
+      }
+    }
+  } catch {}
+}, 20);
 
 // ── Datos de personajes ────────────────────────────────
 const CHARS = {
@@ -102,13 +118,14 @@ function openMenu(player) {
 // ── CONFIRMACIÓN CON LORE ──────────────────────────────
 function showConfirm(player, charId) {
   const c = CHARS[charId];
-  const form = new ModalFormData()
+  const form = new MessageFormData()
     .title(c.title)
-    .textField(c.body, "", "")
-    .toggle("§aConvertirme en este personaje", true);
+    .body(c.body)
+    .button1("§aConvertirme en este personaje")
+    .button2("§7Cancelar");
 
   form.show(player).then((res) => {
-    if (res.canceled || !res.formValues?.[1]) return;
+    if (res.canceled || res.selection === 0) return;
     system.run(() => transform(player, charId));
   });
 }
@@ -217,6 +234,19 @@ system.runInterval(() => {
       );
     } catch {}
 
+    // ── SINCRONIZAR ESTADO DE ANIMACIÓN ──
+    try {
+      let animState = 0;
+      if (player.isSneaking) {
+        animState = 2;
+      } else {
+        const vel = player.getVelocity();
+        const horizSpeed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+        if (horizSpeed > 0.01) animState = 1;
+      }
+      state.entity.setProperty("miaddon:anim_state", animState);
+    } catch {}
+
     state.tickCount++;
 
     // ── RENOVAR TODOS LOS EFECTOS CADA 100 TICKS ──
@@ -298,7 +328,7 @@ world.afterEvents.entityHurt.subscribe((ev) => {
     const targetState = transforms.get(target.name);
     if (targetState?.charId === "goliath") {
       try {
-        target.applyDamage(50, { damagingEntity: player, cause: "entityAttack" });
+        target.applyDamage(50, { cause: "override" });
         target.addEffect("levitation", 40, { amplifier: 2 });
         player.sendMessage("§b§l\"La piedra hirió al filisteo en la frente\"");
         player.sendMessage("§b§o\"...y cayó sobre su rostro en tierra\" — I Samuel 17:49");

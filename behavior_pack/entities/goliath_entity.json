@@ -1,11 +1,18 @@
 {
-  "format_version": "1.16.0",
+  "format_version": "1.19.40",
   "minecraft:entity": {
     "description": {
       "identifier": "miaddon:goliath_entity",
       "is_spawnable": false,
       "is_summonable": true,
-      "is_experimental": false
+      "is_experimental": false,
+      "properties": {
+        "miaddon:anim_state": {
+          "type": "int",
+          "default": 0,
+          "range": [0, 2]
+        }
+      }
     },
     "components": {
       "minecraft:type_family": {
@@ -25,6 +32,7 @@
         "is_pushable": false,
         "is_pushable_by_piston": false
       },
+      "minecraft:knockback_resistance": { "value": 1.0 },
       "minecraft:nameable": { "allow_name_tag_renaming": false }
     }
   }

@@ -7,22 +7,22 @@
         "idle": {
           "animations": ["biblical.idle"],
           "transitions": [
-            { "walking": "query.modified_move_speed > 0.01" },
-            { "sneaking": "query.is_sneaking" }
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" }
           ]
         },
         "walking": {
           "animations": ["biblical.walk"],
           "transitions": [
-            { "idle": "query.modified_move_speed <= 0.01" },
-            { "sneaking": "query.is_sneaking" }
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" }
           ]
         },
         "sneaking": {
           "animations": ["biblical.sneak"],
           "transitions": [
-            { "idle": "!query.is_sneaking && query.modified_move_speed <= 0.01" },
-            { "walking": "!query.is_sneaking && query.modified_move_speed > 0.01" }
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" }
           ]
         }
       }
