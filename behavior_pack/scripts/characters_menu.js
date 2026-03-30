@@ -121,8 +121,8 @@ function showConfirm(player, charId) {
   const form = new MessageFormData()
     .title(c.title)
     .body(c.body)
-    .button1("§aConvertirme en este personaje")
-    .button2("§7Cancelar");
+    .button1("§7Cancelar")
+    .button2("§aConvertirme en este personaje");
 
   form.show(player).then((res) => {
     if (res.canceled || res.selection === 0) return;
