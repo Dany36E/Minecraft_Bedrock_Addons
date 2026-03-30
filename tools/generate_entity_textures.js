@@ -349,13 +349,21 @@ async function genDavid() {
   paintBox(img, 0, 0, 8, 8, 8, {
     top: HR, bottom: SKS, front: SK, back: HRD, right: SK, left: SK
   });
-  // Sides: hair on back columns
-  fill(img, 4,8, 7,15, HRD); fill(img, 0,15, 3,15, CHIN);
-  fill(img, 16,8, 19,15, HRD); fill(img, 20,15, 23,15, CHIN);
+  // Right side [0,8]-[7,15]: thick hair on back 5 cols, skin on front 3
+  fill(img, 0,8, 2,15, SK);  fill(img, 3,8, 7,15, HRD);
+  px(img,3,8,HR); px(img,4,8,HR);  // lighter at top
+  fill(img, 0,15, 2,15, CHIN);
+  // Left side [16,8]-[23,15]: mirror
+  fill(img, 21,8, 23,15, SK); fill(img, 16,8, 20,15, HRD);
+  px(img,20,8,HR); px(img,19,8,HR);
+  fill(img, 21,15, 23,15, CHIN);
 
-  // Front face [8,8]-[15,15]
-  fill(img, 8,8, 15,8, HR);                                          // y=8: copper fringe
-  px(img,8,9,HRD); fill(img,9,9,14,9, SK); px(img,15,9,HRD);       // y=9: forehead
+  // Front face [8,8]-[15,15] — this IS the visible face now
+  // y=8: thick copper fringe across forehead
+  fill(img, 8,8, 15,8, HR);
+  // y=9: fringe continues with volume (curly = uneven edge)
+  px(img,8,9,HRD); px(img,9,9,HR); px(img,10,9,HRD); fill(img,11,9,12,9,SK);
+  px(img,13,9,HRD); px(img,14,9,HR); px(img,15,9,HRD);
   // y=10: eyebrows
   px(img,8,10,SKS); px(img,9,10,SK);
   fill(img,10,10,11,10,"#5A3820"); px(img,12,10,SK); fill(img,13,10,14,10,"#5A3820");
@@ -384,35 +392,68 @@ async function genDavid() {
   px(img,14,15,SK); px(img,15,15,CHIN);
 
   // ── HAT [32,0] [8,8,8] — copper curls overlay ──
-  paintBox(img, 32, 0, 8, 8, 8, { all: HR });
-  // Top face: curl dither
-  dither(img, 40,0, 47,7, HR, HRD);
-  // Back face: full curls
-  dither(img, 56,8, 63,15, HR, HRD);
-  // Front face: top 2 rows hair, edge columns rows 2-3, rest transparent
-  dither(img, 40,8, 47,9, HR, HRD);
-  for (let y = 8; y <= 9; y++) { px(img,41,y,HRL); px(img,44,y,HRL); } // light highlights
-  fill(img,40,10,40,11,HR); fill(img,47,10,47,11,HR); // side cols
-  clr(img, 41,10, 46,11);   // center transparent (eyes visible)
-  clr(img, 40,12, 47,15);   // lower transparent (face visible)
-  // Sides: upper half curls, lower half transparent
-  dither(img, 32,8, 39,11, HR, HRD); clr(img, 32,12, 39,15);
-  dither(img, 48,8, 55,11, HR, HRD); clr(img, 48,12, 55,15);
-  // Bottom: transparent
-  clr(img, 48,0, 55,7);
+  // STRATEGY: front face 100% transparent so face is always visible.
+  // Hair only on top, back, and upper sides.
+  paintBox(img, 32, 0, 8, 8, 8, { all: "#00000000" }); // start fully transparent
+  // Top face [40,0]-[47,7]: copper curls with dark curl pattern
+  for (let x = 40; x <= 47; x++)
+    for (let y = 0; y <= 7; y++) {
+      const curl = ((x + y) % 3 === 0) ? HRL : ((x + y) % 3 === 1) ? HR : HRD;
+      px(img, x, y, curl);
+    }
+  // Back face [56,8]-[63,15]: full dark curls
+  for (let x = 56; x <= 63; x++)
+    for (let y = 8; y <= 15; y++) {
+      const curl = ((x * 3 + y) % 4 === 0) ? HRL : ((x + y) % 2 === 0) ? HR : HRD;
+      px(img, x, y, curl);
+    }
+  // Front face [40,8]-[47,15]: 100% TRANSPARENT — face shows through
+  clr(img, 40, 8, 47, 15);
+  // Right side [32,8]-[39,15]: upper 3 rows curls, rest transparent
+  for (let x = 32; x <= 39; x++)
+    for (let y = 8; y <= 10; y++) {
+      px(img, x, y, ((x + y) % 2 === 0) ? HR : HRD);
+    }
+  clr(img, 32, 11, 39, 15);
+  // Left side [48,8]-[55,15]: upper 3 rows curls, rest transparent
+  for (let x = 48; x <= 55; x++)
+    for (let y = 8; y <= 10; y++) {
+      px(img, x, y, ((x + y) % 2 === 0) ? HR : HRD);
+    }
+  clr(img, 48, 11, 55, 15);
+  // Bottom face: transparent
+  clr(img, 48, 0, 55, 7);
 
   // ── CURLY HAIR [0,32] [8,4,8] (inflate 1.2!) ──
-  paintBox(img, 0, 32, 8, 4, 8, { all: HR });
-  dither(img, 8,32, 15,39, HR, HRL);   // top: bright curls
-  dither(img, 24,40, 31,43, HR, HRD);  // back: dark curls
-  // Front [8,40]-[15,43]: top 2 rows curly, bottom 2 transparent
-  dither(img, 8,40, 15,41, HR, HRL);
-  clr(img, 8,42, 15,43);
-  // Sides: top rows curly, bottom transparent
-  dither(img, 0,40, 7,41, HR, HRD);  clr(img, 0,42, 7,43);
-  dither(img, 16,40, 23,41, HR, HRD); clr(img, 16,42, 23,43);
-  // Bottom: transparent
-  clr(img, 16,32, 23,39);
+  // STRATEGY: front face 100% transparent. This bone creates a thick
+  // shell around the head. Only show curls on top, sides, and back.
+  paintBox(img, 0, 32, 8, 4, 8, { all: "#00000000" }); // start transparent
+  // Top face [8,32]-[15,39]: rich curl pattern
+  for (let x = 8; x <= 15; x++)
+    for (let y = 32; y <= 39; y++) {
+      const curl = ((x * 2 + y) % 5 === 0) ? HRL
+                 : ((x + y * 3) % 4 === 0) ? HRD : HR;
+      px(img, x, y, curl);
+    }
+  // Back face [24,40]-[31,43]: full dark curls hanging down
+  for (let x = 24; x <= 31; x++)
+    for (let y = 40; y <= 43; y++) {
+      px(img, x, y, ((x + y) % 3 === 0) ? HRL : ((x + y) % 2 === 0) ? HRD : HR);
+    }
+  // Front face [8,40]-[15,43]: 100% TRANSPARENT
+  clr(img, 8, 40, 15, 43);
+  // Right side [0,40]-[7,43]: curls on upper 2 rows, lower 2 transparent
+  for (let x = 0; x <= 7; x++)
+    for (let y = 40; y <= 41; y++)
+      px(img, x, y, ((x + y) % 2 === 0) ? HR : HRD);
+  clr(img, 0, 42, 7, 43);
+  // Left side [16,40]-[23,43]: same
+  for (let x = 16; x <= 23; x++)
+    for (let y = 40; y <= 41; y++)
+      px(img, x, y, ((x + y) % 2 === 0) ? HR : HRD);
+  clr(img, 16, 42, 23, 43);
+  // Bottom face [16,32]-[23,39]: transparent
+  clr(img, 16, 32, 23, 39);
 
   // ── BODY [16,16] [8,12,4] — shepherd tunic ──
   paintBox(img, 16, 16, 8, 12, 4, {
