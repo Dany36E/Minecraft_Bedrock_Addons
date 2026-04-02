@@ -19,7 +19,17 @@
       "minecraft:icon": "miaddon:david_sling",
       "minecraft:display_name": {
         "value": "item.miaddon:david_sling.name"
-      }
+      },
+      "minecraft:food": {
+        "nutrition": 0,
+        "saturation_modifier": 0,
+        "can_always_eat": true
+      },
+      "minecraft:use_modifiers": {
+        "use_duration": 72000,
+        "movement_modifier": 1.0
+      },
+      "minecraft:use_animation": "bow"
     }
   }
 }

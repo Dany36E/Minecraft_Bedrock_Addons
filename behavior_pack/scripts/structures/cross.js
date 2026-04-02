@@ -50,6 +50,35 @@ function generateCross() {
   for (let x = -1; x <= 1; x++)
     blocks.push([x + 8, 7, 0, LOG]);
 
+  // ── Sepulcro de José de Arimatea — Mateo 27:57-60 ──
+  // "lo puso en su sepulcro nuevo, que había labrado en la peña;
+  //  y después de hacer rodar una gran piedra a la entrada del sepulcro, se fue."
+  const tombX = 0;
+  const tombZ = 8; // detrás del Gólgota
+  // Colina de roca para el sepulcro
+  for (let tx = -3; tx <= 3; tx++)
+    for (let tz = tombZ - 1; tz <= tombZ + 4; tz++)
+      for (let ty = 0; ty <= 2; ty++) {
+        const dist = Math.abs(tx) + Math.abs(tz - tombZ - 1) + ty;
+        if (dist <= 5)
+          blocks.push([tx, ty, tz, "minecraft:stone"]);
+      }
+  // Cámara interior (hueca, 3×2×2)
+  for (let tx = -1; tx <= 1; tx++)
+    for (let tz = tombZ + 1; tz <= tombZ + 3; tz++)
+      for (let ty = 1; ty <= 2; ty++)
+        blocks.push([tx, ty, tz, "minecraft:air"]);
+  // Banco de piedra donde reposó el cuerpo — Marcos 15:46
+  blocks.push([1, 1, tombZ + 2, "minecraft:smooth_stone_slab"]);
+  blocks.push([1, 1, tombZ + 3, "minecraft:smooth_stone_slab"]);
+  // Entrada del sepulcro (abertura)
+  blocks.push([0, 1, tombZ, "minecraft:air"]);
+  blocks.push([0, 2, tombZ, "minecraft:air"]);
+  // Gran piedra rodada a un lado — Mateo 28:2 "removió la piedra"
+  blocks.push([2, 1, tombZ, "minecraft:cobblestone"]);
+  // Lienzos dejados — Juan 20:6-7
+  blocks.push([0, 1, tombZ + 2, "minecraft:white_carpet"]);
+
   return blocks;
 }
 
@@ -57,6 +86,6 @@ export const cross = {
   id: "cross",
   name: "Cruz del Gólgota",
   category: "monumentos",
-  description: "Las tres cruces del Calvario — Juan 19",
+  description: "Las tres cruces y el sepulcro vacío — Juan 19, Mateo 27-28",
   blocks: generateCross()
 };

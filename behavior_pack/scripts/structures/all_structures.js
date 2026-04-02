@@ -10,6 +10,9 @@ import { cross } from "./cross.js";
 import { pyramid } from "./pyramid.js";
 import { samsonPrison } from "./samson_prison.js";
 import { dagonTemple } from "./dagon_temple.js";
+import { jerichoWall } from "./jericho_wall.js";
+import { arkCovenant } from "./ark_covenant.js";
+import { davidsTower } from "./davids_tower.js";
 
 export const STRUCTURES = {
   ark,
@@ -23,4 +26,7 @@ export const STRUCTURES = {
   pyramid,
   samson_prison: samsonPrison,
   dagon_temple: dagonTemple,
+  jericho_wall: jerichoWall,
+  ark_covenant: arkCovenant,
+  davids_tower: davidsTower,
 };

@@ -1,0 +1,14 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": { "identifier": "miaddon:samson_scroll_recipe" },
+    "tags": ["crafting_table"],
+    "pattern": ["PPP", "PIP", "PPP"],
+    "key": {
+      "P": { "item": "minecraft:paper" },
+      "I": { "item": "minecraft:ink_sac" }
+    },
+    "unlock": [{ "item": "minecraft:paper" }],
+    "result": { "item": "miaddon:samson_scroll", "count": 1 }
+  }
+}

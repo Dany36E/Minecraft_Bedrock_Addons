@@ -3,6 +3,7 @@
 import { world, system, EquipmentSlot } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
 import { STRUCTURES } from "./structures/all_structures.js";
+import { onStructureBuilt } from "./quest_system.js";
 
 // ══════════════════════════════════════════
 // Lore bíblico de cada estructura
@@ -10,27 +11,27 @@ import { STRUCTURES } from "./structures/all_structures.js";
 const STRUCTURE_LORE = {
   ark: {
     name: "Arca de Noé", ref: "Génesis 6:14-16",
-    story: "Dios mandó a Noé construir un arca de madera de gofer, de 300 codos de largo, 50 de ancho y 30 de alto, para salvar a su familia y a los animales del diluvio universal.",
+    story: "Noé construyó un arca de madera de gofer (ciprés), calafateada con brea. 3 pisos con aposentos: bestias salvajes abajo, domésticos y provisiones en medio, y la familia de Noé arriba (Talmud, Sanedrín 108b). Incluye tsohar (ventana continua), una puerta lateral y techo a dos aguas.",
     verse: '"Hazte un arca de madera de gofer; harás aposentos en el arca, y la calafatearás con brea por dentro y por fuera."',
-    dims: "60×15×20", blocks: "~18,000", time: "~3 min", materials: "Madera y brea",
+    dims: "75×20×15", blocks: "~10,000", time: "~2 min", materials: "Gofer/ciprés (spruce), brea/betún (dark oak), vidrio, heno",
   },
   tabernacle: {
     name: "Tabernáculo", ref: "Éxodo 26",
     story: "El Tabernáculo era la morada portátil de Dios entre su pueblo durante el éxodo. Contenía el Arca del Pacto, el candelabro de oro y la mesa de los panes de la proposición.",
     verse: '"Y harán un santuario para mí, y habitaré en medio de ellos."',
-    dims: "20×12×30", blocks: "~7,200", time: "~1.5 min", materials: "Lino y madera de acacia",
+    dims: "50×8×25", blocks: "~8,000", time: "~1.5 min", materials: "Acacia, lino, oro, bronce y plata",
   },
   altar: {
     name: "Altar del Holocausto", ref: "Éxodo 27:1-8",
     story: "El altar de bronce era donde se ofrecían los sacrificios a Dios. Medía 5 codos de largo y ancho, y 3 de alto, con cuernos en sus cuatro esquinas.",
     verse: '"Harás también un altar de madera de acacia... y le harás cuernos en sus cuatro esquinas."',
-    dims: "8×4×8", blocks: "~256", time: "~10 seg", materials: "Piedra y fuego",
+    dims: "7×5×10", blocks: "~300", time: "~10 seg", materials: "Bronce (cobre) y acacia",
   },
   tower_babel: {
     name: "Torre de Babel", ref: "Génesis 11:1-9",
     story: "Los hombres quisieron construir una torre que llegara al cielo para hacerse un nombre. Dios confundió sus lenguas y los dispersó por toda la tierra.",
     verse: '"Edifiquemos una ciudad y una torre, cuya cúspide llegue al cielo; y hagámonos un nombre."',
-    dims: "20×40×20", blocks: "~16,000", time: "~3 min", materials: "Ladrillo de barro",
+    dims: "24×45×24", blocks: "~16,000", time: "~3 min", materials: "Ladrillo cocido y betún (Gn 11:3)",
   },
   church: {
     name: "Iglesia con Campanario", ref: "Tradición cristiana",
@@ -39,10 +40,10 @@ const STRUCTURE_LORE = {
     dims: "18×24×12", blocks: "~5,200", time: "~1 min", materials: "Piedra y madera",
   },
   medieval_house: {
-    name: "Casa Medieval", ref: "Proverbios 24:3-4",
-    story: "Inspirada en las viviendas bíblicas cercanas a Jerusalén, con techo plano para descansar, patio interior y ventanas angostas.",
-    verse: '"Con sabiduría se edificará la casa, y con prudencia se afirmará."',
-    dims: "12×8×10", blocks: "~960", time: "~15 seg", materials: "Madera roble y piedra",
+    name: "Casa Bíblica", ref: "Deuteronomio 22:8, 2 Reyes 4:10",
+    story: "Casa de aldea con techo PLANO (mandato bíblico), pretil de seguridad, escalera exterior al terrado, y aposento alto para huéspedes, como la sunamita preparó para Eliseo.",
+    verse: '"Harás pretil a tu terrado, para que no eches culpa de sangre sobre tu casa." — Dt 22:8',
+    dims: "10×9×8", blocks: "~800", time: "~15 seg", materials: "Ladrillos de barro y piedra",
   },
   well: {
     name: "Pozo Bíblico", ref: "Juan 4:6-14",
@@ -51,10 +52,10 @@ const STRUCTURE_LORE = {
     dims: "6×6×6", blocks: "~216", time: "~5 seg", materials: "Piedra musgo y madera",
   },
   cross: {
-    name: "Cruz del Gólgota", ref: "Juan 19:17-18",
-    story: "En el monte Calvario, Cristo fue crucificado como sacrificio por los pecados del mundo. La cruz es el símbolo central de la fe cristiana.",
-    verse: '"Y llevándose su cruz, salió al lugar llamado de la Calavera... donde le crucificaron."',
-    dims: "4×10×2", blocks: "~40", time: "~3 seg", materials: "Madera oscura",
+    name: "Cruz del Gólgota", ref: "Juan 19:17-18, Mateo 27:57-60",
+    story: "En el monte Calvario, Cristo fue crucificado como sacrificio por los pecados del mundo. Incluye el sepulcro nuevo de José de Arimatea donde fue puesto y de donde resucitó al tercer día.",
+    verse: '"Lo puso en su sepulcro nuevo... hizo rodar una gran piedra a la entrada." — Mt 27:60',
+    dims: "20×13×12", blocks: "~200", time: "~8 seg", materials: "Madera oscura y piedra",
   },
   pyramid: {
     name: "Pirámide de Arena", ref: "Éxodo 1:11",
@@ -74,16 +75,36 @@ const STRUCTURE_LORE = {
     verse: '"Entonces Sansón asió las dos columnas del medio, sobre las cuales descansaba la casa... y dijo: ¡Muera yo con los filisteos!"',
     dims: "40×20×25", blocks: "~20,000", time: "~4 min", materials: "Piedra pulida y ladrillos",
   },
+  jericho_wall: {
+    name: "Muralla de Jericó", ref: "Josué 6:1-20",
+    story: "Muralla DOBLE de Jericó con la casa de Rahab entre ambos muros. Ella escondió a los espías bajo manojos de lino y colgó un cordón escarlata de su ventana. Al séptimo día los muros cayeron.",
+    verse: '"Ella los había escondido entre manojos de lino que tenía puestos en el terrado." — Josué 2:6',
+    dims: "44×13×44", blocks: "~12,000", time: "~2.5 min", materials: "Arenisca, ladrillos de barro y piedra",
+  },
+  ark_covenant: {
+    name: "Arca del Pacto", ref: "Éxodo 25:10-22",
+    story: "Dios mandó a Moisés construir un arca de madera de acacia revestida de oro. Sobre ella, dos querubines de oro extendían sus alas. Allí, entre los querubines, Dios hablaba con Moisés.",
+    verse: '"Y de allí me declararé a ti, y hablaré contigo de sobre el propiciatorio, de entre los dos querubines."',
+    dims: "8×7×6", blocks: "~80", time: "~5 seg", materials: "Oro y acacia",
+  },
+  davids_tower: {
+    name: "Torre de David", ref: "2 Samuel 5:9",
+    story: "David conquistó la fortaleza de Sión. Cantares 4:4 dice que mil escudos de valientes colgaban de ella. Desde allí reinó sobre todo Israel.",
+    verse: '"Tu cuello, como la torre de David... mil escudos están colgados en ella." — Cantares 4:4',
+    dims: "12×27×12", blocks: "~3,500", time: "~45 seg", materials: "Piedra labrada",
+  },
 };
 
 // ══════════════════════════════════════════
 // Filtros por historia bíblica
 // ══════════════════════════════════════════
 const STORY_FILTERS = {
-  all:       { label: "§l§f✦ Todas las estructuras",   sub: "§e11 construcciones",                 ids: Object.keys(STRUCTURE_LORE) },
+  all:       { label: "§l§f✦ Todas las estructuras",   sub: "§e14 construcciones",                 ids: Object.keys(STRUCTURE_LORE) },
   samson:    { label: "§l§c⚔ Historia de Sansón",       sub: "§ePrisión de Gaza, Templo de Dagón",  ids: ["samson_prison", "dagon_temple"] },
   noah:      { label: "§l§9🌊 Historia de Noé",         sub: "§eEl Arca del diluvio",                ids: ["ark"] },
-  moses:     { label: "§l§6☁ Historia de Moisés",       sub: "§eTabernáculo, Altar, Pirámide",       ids: ["tabernacle", "altar", "pyramid"] },
+  moses:     { label: "§l§6☁ Historia de Moisés",       sub: "§eTabernáculo, Altar, Pirámide, Arca del Pacto", ids: ["tabernacle", "altar", "pyramid", "ark_covenant"] },
+  joshua:    { label: "§l§a⚔ Historia de Josué",        sub: "§eMuralla de Jericó",                  ids: ["jericho_wall"] },
+  david:     { label: "§l§e👑 Historia de David",        sub: "§eTorre de David",                     ids: ["davids_tower"] },
   genesis:   { label: "§l§d🏗 Génesis y orígenes",      sub: "§eTorre de Babel, Cruz",                ids: ["tower_babel", "cross"] },
   buildings: { label: "§l§b🏠 Edificios",               sub: "§eIglesia, Casa, Pozo",                 ids: ["church", "medieval_house", "well"] },
 };
@@ -103,23 +124,16 @@ const PROGRESS_MESSAGES = {
   pyramid:        ["§eLos esclavos arrastran los bloques...", "§eCapa tras capa asciende la pirámide...", "§eLos capataces gritan órdenes...", "§e¡La pirámide del faraón se completa!"],
   samson_prison:  ["§7Los filisteos preparan los grilletes...", "§7Se levantan los muros de la prisión...", "§7La rueda de moler se ancla al suelo...", "§7¡La cárcel de Sansón está lista!"],
   dagon_temple:   ["§5Se tallan las columnas del templo...", "§5Las gradas se erigen en ambos lados...", "§5El altar de Dagón se enciende...", "§5¡El templo se alza... pero no por mucho!"],
+  jericho_wall:   ["§eSe colocan los cimientos de arenisca...", "§eLa muralla crece hacia el cielo...", "§eLas torres vigía se levantan...", "§e¡La muralla de Jericó se alza... por ahora!"],
+  ark_covenant:   ["§6Se labra la madera de acacia...", "§6Se reviste de oro puro...", "§6Los querubines extienden sus alas...", "§6¡La gloria de Dios desciende sobre el propiciatorio!"],
+  davids_tower:   ["§7Se excavan los cimientos en la roca...", "§7Los muros de piedra labrada suben...", "§7Las almenas coronan la fortaleza...", "§7¡La Torre de David domina Sión!"],
 };
 
 // ══════════════════════════════════════════
-// Listener: uso de la vara de construcción
-// ══════════════════════════════════════════
-world.beforeEvents.itemUse.subscribe((event) => {
-  const player = event.source;
-  const item = event.itemStack;
-  if (item?.typeId !== "miaddon:construction_wand") return;
-  event.cancel = true;
-  system.run(() => openMainMenu(player));
-});
-
-// ══════════════════════════════════════════
 // Menú principal — Filtros por historia
+// (Llamado desde construction_wand.js)
 // ══════════════════════════════════════════
-function openMainMenu(player) {
+export function openBiblicalMenu(player) {
   const form = new ActionFormData();
   form.title("§6✦ Construcciones Bíblicas ✦");
   form.body("§fElige una historia para explorar sus construcciones:");
@@ -329,6 +343,7 @@ function buildStructure(player, structureId, basePos, rotation) {
       if (failed > 0) {
         player.sendMessage(`§7  (${placed} bloques colocados, ${failed} fallaron)`);
       }
+      try { onStructureBuilt(player); } catch {}
     }
   }, 1);
 }

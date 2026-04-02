@@ -1,0 +1,13 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "miaddon:sling_stone",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/blocks/cobblestone" },
+      "geometry": { "default": "geometry.miaddon.sling_stone" },
+      "render_controllers": ["controller.render.biblical_default"],
+      "spawn_egg": { "base_color": "#808080", "overlay_color": "#606060" }
+    }
+  }
+}

@@ -139,6 +139,28 @@ function generateChurch() {
     blocks.push([x, 2, NL - 2, OAK]);
   }
 
+  // ── Interior: alfombra roja por el pasillo central ──
+  for (let z = 1; z < NL - 2; z++) {
+    blocks.push([5, 1, z, "minecraft:red_carpet"]);
+    blocks.push([6, 1, z, "minecraft:red_carpet"]);
+  }
+
+  // ── Interior: candelabros (fence + torch) cada 3 filas ──
+  for (let z = 2; z < NL - 2; z += 3) {
+    blocks.push([1, 1, z, DOAK_FENCE]);
+    blocks.push([1, 2, z, "minecraft:torch"]);
+    blocks.push([NW - 2, 1, z, DOAK_FENCE]);
+    blocks.push([NW - 2, 2, z, "minecraft:torch"]);
+  }
+
+  // ── Interior: alfombra roja detrás del altar ──
+  for (let x = 3; x <= 8; x++)
+    blocks.push([x, 1, NL - 3, "minecraft:red_carpet"]);
+
+  // ── Interior: atril del predicador ──
+  blocks.push([5, 1, NL - 4, DOAK_FENCE]);
+  blocks.push([5, 2, NL - 4, "minecraft:dark_oak_pressure_plate"]);
+
   return blocks;
 }
 

@@ -11,7 +11,9 @@
         "biblical.walk": "animation.biblical.walk",
         "biblical.sneak": "animation.biblical.sneak",
         "biblical.attack": "animation.biblical.attack",
-        "ctrl": "controller.animation.biblical.base"
+        "biblical.attack_dalila": "animation.biblical.attack_dalila",
+        "biblical.jump": "animation.biblical.jump",
+        "ctrl": "controller.animation.biblical.dalila"
       },
       "scripts": {
         "animate": ["ctrl"]

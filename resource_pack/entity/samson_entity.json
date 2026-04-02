@@ -11,10 +11,17 @@
         "biblical.walk": "animation.biblical.walk",
         "biblical.sneak": "animation.biblical.sneak",
         "biblical.attack": "animation.biblical.attack",
-        "ctrl": "controller.animation.biblical.base"
+        "biblical.attack_samson": "animation.biblical.attack_samson",
+        "biblical.jump": "animation.biblical.jump",
+        "samson.braids_sway": "animation.samson.braids_sway",
+        "samson.hair_cut": "animation.samson.hair_cut",
+        "samson.braids_hidden": "animation.samson.braids_hidden",
+        "samson.hair_regrow": "animation.samson.hair_regrow",
+        "ctrl": "controller.animation.biblical.samson",
+        "hair_ctrl": "controller.animation.samson.hair"
       },
       "scripts": {
-        "animate": ["ctrl"]
+        "animate": ["ctrl", "hair_ctrl"]
       },
       "render_controllers": ["controller.render.biblical_default"],
       "spawn_egg": {

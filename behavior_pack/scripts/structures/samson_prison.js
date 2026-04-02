@@ -68,8 +68,12 @@ function generateSamsonPrison() {
   blocks.push([12, 1, 7, "minecraft:air"]);
   blocks.push([12, 2, 7, "minecraft:air"]);
 
-  // Cepo en el suelo de la celda
+  // Cepo en el suelo de la celda — Jueces 16:21 "grillos de bronce"
   blocks.push([14, 1, 6, "minecraft:iron_trapdoor"]);
+  blocks.push([14, 1, 7, "minecraft:iron_trapdoor"]);
+  // Grillos de bronce (copper = bronce bíblico)
+  blocks.push([15, 1, 6, "minecraft:copper_block"]);
+  blocks.push([15, 1, 7, "minecraft:copper_block"]);
 
   // Cadenas en las paredes de la celda
   for (let z = 3; z <= 10; z += 2) {

@@ -119,7 +119,6 @@ function generateDagonTemple() {
       for (let y = 1; y <= 4; y++) {
         blocks.push([x, y, z, "minecraft:nether_bricks"]);
       }
-      // Mesa del altar
       blocks.push([x, 5, z, "minecraft:blackstone"]);
     }
   }
@@ -129,6 +128,19 @@ function generateDagonTemple() {
       blocks.push([x, 6, z, "minecraft:fire"]);
     }
   }
+
+  // ── Ídolo de Dagón (mitad hombre, mitad pez) — 1 Samuel 5:4 ──
+  // "Y la cabeza de Dagón y las dos palmas de sus manos estaban cortadas
+  //  sobre el umbral" (caído ante el Arca)
+  const idolX = 37, idolZ = 12;
+  // Cuerpo del ídolo (sobre el altar)
+  blocks.push([idolX, 6, idolZ, "minecraft:prismarine"]); // cola de pez (base)
+  blocks.push([idolX, 7, idolZ, "minecraft:dark_prismarine"]); // torso
+  blocks.push([idolX, 8, idolZ, "minecraft:prismarine_bricks"]); // pecho
+  blocks.push([idolX, 9, idolZ, "minecraft:carved_pumpkin"]); // cabeza
+  // Brazos extendidos
+  blocks.push([idolX - 1, 8, idolZ, "minecraft:prismarine"]);
+  blocks.push([idolX + 1, 8, idolZ, "minecraft:prismarine"]);
 
   // ── Gradas laterales (donde estaban los 3,000 filisteos) ──
   // Lado izquierdo: z=2..5

@@ -1,0 +1,37 @@
+{
+  "entity_sounds": {
+    "entities": {
+      "miaddon:philistine": {
+        "volume": 1.0,
+        "pitch": [0.8, 1.2],
+        "events": {
+          "ambient": {
+            "sound": "mob.vindicator.ambient",
+            "volume": 0.6,
+            "pitch": [0.9, 1.1]
+          },
+          "hurt": {
+            "sound": "mob.vindicator.hurt",
+            "volume": 0.8
+          },
+          "death": {
+            "sound": "mob.vindicator.death",
+            "volume": 1.0,
+            "pitch": [0.7, 0.9]
+          },
+          "step": {
+            "sound": "mob.zombie.step",
+            "volume": 0.3,
+            "pitch": [0.8, 1.0]
+          }
+        }
+      },
+      "miaddon:sling_stone": {
+        "volume": 0.4,
+        "events": {
+          "ambient": ""
+        }
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@
   "resource_pack_name": "miaddon",
   "texture_name": "atlas.items",
   "texture_data": {
-    "miaddon_test_sword": {
+    "miaddon:test_sword": {
       "textures": "textures/items/test_sword"
     },
     "miaddon:samson_hair": {

@@ -1,0 +1,20 @@
+{
+  "format_version": "1.19.40",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "miaddon:sling_stone",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:collision_box": { "width": 0.25, "height": 0.25 },
+      "minecraft:physics": { "has_gravity": true, "has_collision": true },
+      "minecraft:pushable": { "is_pushable": false, "is_pushable_by_piston": false },
+      "minecraft:knockback_resistance": { "value": 1.0 },
+      "minecraft:damage_sensor": { "triggers": [{ "deals_damage": false, "cause": "all" }] },
+      "minecraft:type_family": { "family": ["sling_stone", "projectile"] },
+      "minecraft:scale": { "value": 0.5 }
+    }
+  }
+}

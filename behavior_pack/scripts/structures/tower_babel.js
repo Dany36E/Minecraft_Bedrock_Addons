@@ -1,10 +1,15 @@
-// tower_babel.js — Torre de Babel — Génesis 11
+// tower_babel.js — Torre de Babel — Génesis 11:1-9
+// "Vamos, hagamos ladrillo y cozámoslo con fuego.
+//  Y les sirvió el ladrillo en lugar de piedra,
+//  y el asfalto [betún] en lugar de mezcla." — Gn 11:3
 // Zigurat escalonado de 4 niveles con rampa en espiral
 
 function generateTowerBabel() {
   const blocks = [];
-  const TERRA = "minecraft:orange_terracotta";
-  const MUD = "minecraft:mud_bricks";
+  const BRICK = "minecraft:brick_block";         // "Hagamos ladrillo" (Gn 11:3)
+  const MUD = "minecraft:mud_bricks";             // Ladrillos de barro/adobe
+  const ASPHALT = "minecraft:blackstone";          // "Asfalto/betún" como mezcla (Gn 11:3)
+  const NETHER = "minecraft:nether_bricks";        // Ladrillos cocidos oscuros
   const SAND_SM = "minecraft:smooth_sandstone";
   const NBRICK_FENCE = "minecraft:nether_brick_fence";
 
@@ -20,11 +25,12 @@ function generateTowerBabel() {
     const s = tier.size;
     const h = tier.height;
     const by = tier.y;
-    const offset = Math.floor((24 - s) / 2); // centrado en base 24
+    const offset = Math.floor((24 - s) / 2);
 
-    // Paredes exteriores (solo cáscara)
+    // Paredes exteriores: ladrillo cocido + betún en las juntas
     for (let y = by; y < by + h; y++) {
-      const mat = y % 3 === 0 ? MUD : TERRA;
+      // Alternar ladrillo y betún/asfalto según Gn 11:3
+      const mat = y % 3 === 0 ? ASPHALT : (y % 3 === 1 ? BRICK : NETHER);
       for (let x = offset; x < offset + s; x++) {
         blocks.push([x, y, offset, mat]);
         blocks.push([x, y, offset + s - 1, mat]);
@@ -35,33 +41,37 @@ function generateTowerBabel() {
       }
     }
 
-    // Piso de cada nivel
+    // Piso de cada nivel — ladrillo
     for (let x = offset; x < offset + s; x++)
       for (let z = offset; z < offset + s; z++)
-        blocks.push([x, by, z, TERRA]);
+        blocks.push([x, by, z, BRICK]);
 
-    // Borde superior decorativo
+    // Borde superior decorativo— asfalto
     for (let x = offset; x < offset + s; x++) {
-      blocks.push([x, by + h, offset, MUD]);
-      blocks.push([x, by + h, offset + s - 1, MUD]);
+      blocks.push([x, by + h, offset, ASPHALT]);
+      blocks.push([x, by + h, offset + s - 1, ASPHALT]);
     }
     for (let z = offset + 1; z < offset + s - 1; z++) {
-      blocks.push([offset, by + h, z, MUD]);
-      blocks.push([offset + s - 1, by + h, z, MUD]);
+      blocks.push([offset, by + h, z, ASPHALT]);
+      blocks.push([offset + s - 1, by + h, z, ASPHALT]);
     }
   }
 
-  // ── Cima inacabada (y=40-44) ──
+  // ── Cima INACABADA (y=40-44) — Gn 11:8 "dejaron de edificar" ──
   for (let x = 10; x < 14; x++)
     for (let z = 10; z < 14; z++)
-      blocks.push([x, 40, z, TERRA]);
-  // Pilares inacabados
+      blocks.push([x, 40, z, BRICK]);
+  // Pilares abandonados a medio construir
   for (let y = 41; y <= 45; y++) {
     blocks.push([10, y, 10, NBRICK_FENCE]);
     blocks.push([13, y, 10, NBRICK_FENCE]);
     blocks.push([10, y, 13, NBRICK_FENCE]);
     blocks.push([13, y, 13, NBRICK_FENCE]);
   }
+  // Ladrillos tirados (construcción abandonada)
+  blocks.push([11, 41, 11, BRICK]);
+  blocks.push([12, 41, 12, NETHER]);
+  blocks.push([11, 41, 13, BRICK]);
 
   // ── Rampa en espiral exterior (2 bloques de ancho) ──
   // La rampa sube por los 4 lados en secuencia: sur→este→norte→oeste
@@ -103,6 +113,6 @@ export const tower_babel = {
   id: "tower_babel",
   name: "Torre de Babel",
   category: "biblicas",
-  description: "La torre escalonada que tocaba el cielo — Génesis 11",
+  description: "Zigurat de ladrillo cocido y betún — Génesis 11:3-4",
   blocks: generateTowerBabel()
 };

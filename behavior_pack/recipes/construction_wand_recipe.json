@@ -1,0 +1,15 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": { "identifier": "miaddon:construction_wand_recipe" },
+    "tags": ["crafting_table"],
+    "pattern": [" G ", " B ", " S "],
+    "key": {
+      "G": { "item": "minecraft:gold_ingot" },
+      "B": { "item": "minecraft:blaze_rod" },
+      "S": { "item": "minecraft:stick" }
+    },
+    "unlock": [{ "item": "minecraft:blaze_rod" }],
+    "result": { "item": "miaddon:construction_wand", "count": 1 }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": { "identifier": "miaddon:scissors_recipe" },
+    "tags": ["crafting_table"],
+    "pattern": [" I ", "I I", "   "],
+    "key": {
+      "I": { "item": "minecraft:iron_ingot" }
+    },
+    "unlock": [{ "item": "minecraft:iron_ingot" }],
+    "result": { "item": "miaddon:scissors", "count": 1 }
+  }
+}

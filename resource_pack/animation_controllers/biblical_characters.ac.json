@@ -1,7 +1,7 @@
 {
   "format_version": "1.10.0",
   "animation_controllers": {
-    "controller.animation.biblical.base": {
+    "controller.animation.biblical.david": {
       "initial_state": "idle",
       "states": {
         "idle": {
@@ -9,7 +9,8 @@
           "transitions": [
             { "walking": "query.property('miaddon:anim_state') == 1" },
             { "sneaking": "query.property('miaddon:anim_state') == 2" },
-            { "attacking": "query.property('miaddon:anim_state') == 3" }
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
           ]
         },
         "walking": {
@@ -17,7 +18,8 @@
           "transitions": [
             { "idle": "query.property('miaddon:anim_state') == 0" },
             { "sneaking": "query.property('miaddon:anim_state') == 2" },
-            { "attacking": "query.property('miaddon:anim_state') == 3" }
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
           ]
         },
         "sneaking": {
@@ -25,15 +27,176 @@
           "transitions": [
             { "idle": "query.property('miaddon:anim_state') == 0" },
             { "walking": "query.property('miaddon:anim_state') == 1" },
-            { "attacking": "query.property('miaddon:anim_state') == 3" }
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
           ]
         },
         "attacking": {
-          "animations": ["biblical.attack"],
+          "animations": ["biblical.attack_david"],
           "transitions": [
             { "idle": "query.property('miaddon:anim_state') == 0" },
             { "walking": "query.property('miaddon:anim_state') == 1" },
-            { "sneaking": "query.property('miaddon:anim_state') == 2" }
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "jumping": {
+          "animations": ["biblical.jump"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" }
+          ]
+        }
+      }
+    },
+    "controller.animation.biblical.samson": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["biblical.idle"],
+          "transitions": [
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "walking": {
+          "animations": ["biblical.walk"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "sneaking": {
+          "animations": ["biblical.sneak"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "attacking": {
+          "animations": ["biblical.attack_samson"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "jumping": {
+          "animations": ["biblical.jump"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" }
+          ]
+        }
+      }
+    },
+    "controller.animation.biblical.dalila": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["biblical.idle"],
+          "transitions": [
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "walking": {
+          "animations": ["biblical.walk"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "sneaking": {
+          "animations": ["biblical.sneak"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "attacking": {
+          "animations": ["biblical.attack_dalila"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "jumping": {
+          "animations": ["biblical.jump"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" }
+          ]
+        }
+      }
+    },
+    "controller.animation.biblical.goliath": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["biblical.idle"],
+          "transitions": [
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "walking": {
+          "animations": ["biblical.walk"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "sneaking": {
+          "animations": ["biblical.sneak"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "attacking": {
+          "animations": ["biblical.attack_goliath"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "jumping": "query.property('miaddon:anim_state') == 4" }
+          ]
+        },
+        "jumping": {
+          "animations": ["biblical.jump"],
+          "transitions": [
+            { "idle": "query.property('miaddon:anim_state') == 0" },
+            { "walking": "query.property('miaddon:anim_state') == 1" },
+            { "sneaking": "query.property('miaddon:anim_state') == 2" },
+            { "attacking": "query.property('miaddon:anim_state') == 3" }
           ]
         }
       }

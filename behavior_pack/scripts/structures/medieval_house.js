@@ -1,9 +1,12 @@
-// medieval_house.js — Casa Medieval Bíblica
-// Casa modesta de aldea con techo de barro
+// medieval_house.js — Casa Bíblica de Aldea
+// Techo PLANO (estilo bíblico) — Deuteronomio 22:8 "harás pretil a tu terrado"
+// Hechos 10:9 — Pedro oraba en el techo plano
+// 2 Reyes 4:10 — Aposento alto (aliyah) en el techo
 
 function generateMedievalHouse() {
   const blocks = [];
   const COBBLE = "minecraft:cobblestone";
+  const MUD = "minecraft:mud_bricks";         // Ladrillos de barro (típico bíblico)
   const OAK = "minecraft:oak_planks";
   const DOAK_STAIRS = "minecraft:dark_oak_stairs";
   const GLASS = "minecraft:glass_pane";
@@ -12,11 +15,11 @@ function generateMedievalHouse() {
   const FURNACE = "minecraft:furnace";
   const CHEST = "minecraft:chest";
   const CAMPFIRE = "minecraft:campfire";
-  const DIRT = "minecraft:dirt";
+  const SAND = "minecraft:sandstone";          // Arenisca (Medio Oriente)
 
-  const W = 12; // ancho (x)
-  const D = 10; // profundidad (z)
-  const WH = 5; // altura paredes
+  const W = 10; // ancho (x)
+  const D = 8;  // profundidad (z)
+  const WH = 4; // altura paredes
 
   // ── Cimientos (y=0) ──
   for (let x = 0; x < W; x++)
@@ -28,88 +31,120 @@ function generateMedievalHouse() {
     for (let z = 1; z < D - 1; z++)
       blocks.push([x, 1, z, SMOOTH]);
 
-  // ── Paredes (y=1 a WH) ──
+  // ── Paredes de MUD_BRICKS (ladrillos de barro) con esquinas de piedra ──
   for (let y = 1; y <= WH; y++) {
-    // Pared frontal (z=0) — hueco para puerta en x=5,6 y=1..2
+    // Pared frontal (z=0) — puerta en x=4,5 y=1..2
     for (let x = 0; x < W; x++) {
-      const isDoor = (x === 5 || x === 6) && y <= 2;
+      const isDoor = (x === 4 || x === 5) && y <= 2;
       if (!isDoor) {
         const isCorner = x === 0 || x === W - 1;
-        blocks.push([x, y, 0, isCorner ? COBBLE : OAK]);
+        blocks.push([x, y, 0, isCorner ? COBBLE : MUD]);
       }
     }
     // Pared trasera (z=D-1)
     for (let x = 0; x < W; x++) {
       const isCorner = x === 0 || x === W - 1;
-      blocks.push([x, y, D - 1, isCorner ? COBBLE : OAK]);
+      blocks.push([x, y, D - 1, isCorner ? COBBLE : MUD]);
     }
-    // Paredes laterales (x=0 y x=W-1)
+    // Paredes laterales
     for (let z = 1; z < D - 1; z++) {
       blocks.push([0, y, z, COBBLE]);
       blocks.push([W - 1, y, z, COBBLE]);
     }
   }
 
-  // ── Ventanas (glass_pane a y=3) ──
-  // Frontal
+  // ── Ventanas pequeñas (típicas bíblicas, estrechas) ──
   blocks.push([3, 3, 0, GLASS]);
-  blocks.push([8, 3, 0, GLASS]);
-  // Trasera
+  blocks.push([7, 3, 0, GLASS]);
   blocks.push([3, 3, D - 1, GLASS]);
-  blocks.push([8, 3, D - 1, GLASS]);
-  // Laterales
-  blocks.push([0, 3, 4, GLASS]);
-  blocks.push([0, 3, 7, GLASS]);
-  blocks.push([W - 1, 3, 4, GLASS]);
-  blocks.push([W - 1, 3, 7, GLASS]);
+  blocks.push([0, 3, 3, GLASS]);
+  blocks.push([W - 1, 3, 5, GLASS]);
 
-  // ── Techo A-frame (escaleras de dark oak) ──
-  // El techo sube desde los bordes hacia el centro (ridge en x=5,6)
-  const halfW = Math.floor(W / 2); // 6
-  for (let z = -1; z <= D; z++) {
-    for (let i = 0; i < halfW; i++) {
-      const ry = WH + 1 + i;
-      // Pendiente izquierda (ascendente hacia el este)
-      blocks.push([i - 1, ry, z, DOAK_STAIRS, { "weirdo_direction": 0 }]);
-      // Pendiente derecha (ascendente hacia el oeste)
-      blocks.push([W - i, ry, z, DOAK_STAIRS, { "weirdo_direction": 1 }]);
+  // ── TECHO PLANO — estilo bíblico (Dt 22:8) ──
+  // Vigas de madera + relleno de barro
+  for (let x = 0; x < W; x++)
+    for (let z = 0; z < D; z++) {
+      // Vigas cada 3 bloques
+      const mat = x % 3 === 0 ? OAK : MUD;
+      blocks.push([x, WH + 1, z, mat]);
     }
-    // Cresta central
-    blocks.push([halfW - 1, WH + halfW, z, OAK]);
-    blocks.push([halfW, WH + halfW, z, OAK]);
+
+  // ── Pretil / barandilla — Dt 22:8 "harás pretil a tu terrado" ──
+  for (let x = 0; x < W; x++) {
+    blocks.push([x, WH + 2, 0, "minecraft:cobblestone_wall"]);
+    blocks.push([x, WH + 2, D - 1, "minecraft:cobblestone_wall"]);
+  }
+  for (let z = 1; z < D - 1; z++) {
+    blocks.push([0, WH + 2, z, "minecraft:cobblestone_wall"]);
+    blocks.push([W - 1, WH + 2, z, "minecraft:cobblestone_wall"]);
   }
 
-  // ── Capa de "barro" sobre el techo ──
-  for (let z = 0; z < D; z++) {
-    blocks.push([halfW - 1, WH + halfW + 1, z, DIRT]);
-    blocks.push([halfW, WH + halfW + 1, z, DIRT]);
+  // ── Escalera exterior al techo — típica de casas bíblicas ──
+  for (let step = 0; step < WH + 1; step++) {
+    blocks.push([W, step + 1, D - 2 - step, COBBLE]);
+    blocks.push([W, step + 1, D - 1 - step, COBBLE]);
   }
 
-  // ── Paredes del frontón (triángulos en z=0 y z=D-1) ──
-  for (let i = 0; i < halfW; i++) {
-    const ry = WH + 1 + i;
-    for (let x = i; x < W - i; x++) {
-      blocks.push([x, ry, 0, OAK]);
-      blocks.push([x, ry, D - 1, OAK]);
+  // ── Aposento alto en el techo (aliyah) — 2 Reyes 4:10 ──
+  // Cuarto pequeño en una esquina del techo (para huéspedes/oración)
+  for (let y = WH + 2; y <= WH + 4; y++) {
+    for (let x = 0; x <= 3; x++) {
+      blocks.push([x, y, 0, MUD]);
+      blocks.push([x, y, 3, MUD]);
+    }
+    for (let z = 1; z < 3; z++) {
+      blocks.push([0, y, z, MUD]);
+      blocks.push([3, y, z, MUD]);
     }
   }
+  // Puerta del aposento
+  blocks.push([3, WH + 2, 1, "minecraft:air"]);
+  blocks.push([3, WH + 3, 1, "minecraft:air"]);
+  // Ventana del aposento
+  blocks.push([1, WH + 3, 0, GLASS]);
+  // Techo del aposento
+  for (let x = 0; x <= 3; x++)
+    for (let z = 0; z <= 3; z++)
+      blocks.push([x, WH + 5, z, MUD]);
+  // Cama y lámpara en el aposento
+  blocks.push([1, WH + 2, 1, "minecraft:bed"]);
+  blocks.push([1, WH + 2, 2, "minecraft:bed"]);
+  blocks.push([2, WH + 2, 2, "minecraft:torch"]);
 
   // ── Interior: mobiliario ──
   blocks.push([1, 1, 1, CRAFTING]);
   blocks.push([2, 1, 1, FURNACE]);
   blocks.push([W - 2, 1, 1, CHEST]);
 
-  // ── Fogata exterior ──
-  blocks.push([5, 1, -2, CAMPFIRE]);
-  blocks.push([6, 1, -2, CAMPFIRE]);
+  // ── Interior: mesa (fence + pressure plate) ──
+  blocks.push([5, 1, 3, "minecraft:oak_fence"]);
+  blocks.push([5, 2, 3, "minecraft:oak_pressure_plate"]);
+  blocks.push([6, 1, 3, "minecraft:oak_fence"]);
+  blocks.push([6, 2, 3, "minecraft:oak_pressure_plate"]);
+
+  // ── Interior: esteras / alfombra (típico bíblico) ──
+  for (let x = 2; x <= 7; x++)
+    for (let z = 2; z <= 5; z++)
+      blocks.push([x, 1, z, "minecraft:brown_carpet"]);
+
+  // ── Interior: antorchas / lámparas de aceite ──
+  blocks.push([1, 3, 3, "minecraft:torch"]);
+  blocks.push([W - 2, 3, 3, "minecraft:torch"]);
+  blocks.push([1, 3, D - 3, "minecraft:torch"]);
+
+  // ── Interior: tinajas de agua (calderos) ──
+  blocks.push([W - 2, 1, D - 2, "minecraft:cauldron"]);
+
+  // ── Fogata exterior / horno de pan ──
+  blocks.push([4, 1, -2, CAMPFIRE]);
 
   return blocks;
 }
 
 export const medieval_house = {
   id: "medieval_house",
-  name: "Casa Medieval",
+  name: "Casa Bíblica",
   category: "edificios",
-  description: "Casa modesta de aldea bíblica",
+  description: "Casa con techo plano y aposento alto — Dt 22:8, 2 Reyes 4:10",
   blocks: generateMedievalHouse()
 };

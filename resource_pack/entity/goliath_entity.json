@@ -11,8 +11,10 @@
         "biblical.walk": "animation.biblical.walk",
         "biblical.sneak": "animation.biblical.sneak",
         "biblical.attack": "animation.biblical.attack",
+        "biblical.attack_goliath": "animation.biblical.attack_goliath",
+        "biblical.jump": "animation.biblical.jump",
         "goliath.taunt": "animation.goliath.taunt",
-        "ctrl": "controller.animation.biblical.base"
+        "ctrl": "controller.animation.biblical.goliath"
       },
       "scripts": {
         "animate": ["ctrl"]

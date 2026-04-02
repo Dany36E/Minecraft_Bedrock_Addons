@@ -10,7 +10,12 @@
         "miaddon:anim_state": {
           "type": "int",
           "default": 0,
-          "range": [0, 3]
+          "range": [0, 4]
+        },
+        "miaddon:hair_state": {
+          "type": "int",
+          "default": 0,
+          "range": [0, 2]
         }
       }
     },

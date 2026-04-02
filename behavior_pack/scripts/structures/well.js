@@ -65,6 +65,22 @@ function generateWell() {
       blocks.push([x, 0, z, STONE]);
     }
 
+  // ── Abrevadero para camellos — Gn 24:20 ──
+  // "Y se dio prisa, y vació su cántaro en la pila,
+  //  y corrió otra vez al pozo para sacar agua, y sacó para todos sus camellos."
+  for (let x = 4; x <= 7; x++) {
+    blocks.push([x, 0, -1, STONE]);
+    blocks.push([x, 0, 1, STONE]);
+    blocks.push([x, 0, 0, STONE]);
+    blocks.push([x, 1, -1, WALL]);
+    blocks.push([x, 1, 1, WALL]);
+  }
+  blocks.push([4, 1, 0, WALL]);
+  // Agua en el abrevadero
+  blocks.push([5, 1, 0, WATER]);
+  blocks.push([6, 1, 0, WATER]);
+  blocks.push([7, 1, 0, WALL]);
+
   return blocks;
 }
 
@@ -72,6 +88,6 @@ export const well = {
   id: "well",
   name: "Pozo Bíblico",
   category: "edificios",
-  description: "El pozo de Rebeca — Génesis 24",
+  description: "El pozo de Rebeca con abrevadero — Génesis 24",
   blocks: generateWell()
 };

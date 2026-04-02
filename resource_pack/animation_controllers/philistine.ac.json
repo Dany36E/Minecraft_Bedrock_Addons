@@ -1,0 +1,31 @@
+{
+  "format_version": "1.10.0",
+  "animation_controllers": {
+    "controller.animation.philistine.base": {
+      "initial_state": "idle",
+      "states": {
+        "idle": {
+          "animations": ["philistine.idle"],
+          "transitions": [
+            { "walking": "query.is_moving" },
+            { "attacking": "variable.attack_time > 0" }
+          ]
+        },
+        "walking": {
+          "animations": ["philistine.walk"],
+          "transitions": [
+            { "idle": "!query.is_moving && variable.attack_time <= 0" },
+            { "attacking": "variable.attack_time > 0" }
+          ]
+        },
+        "attacking": {
+          "animations": ["philistine.attack"],
+          "transitions": [
+            { "idle": "variable.attack_time <= 0 && !query.is_moving" },
+            { "walking": "variable.attack_time <= 0 && query.is_moving" }
+          ]
+        }
+      }
+    }
+  }
+}

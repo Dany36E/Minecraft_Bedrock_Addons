@@ -90,10 +90,10 @@ async function genSamson() {
     top: HR, bottom: SKD, front: SK, back: HR, right: SK, left: SK
   });
 
-  // Right side (west) [0,8]-[7,15]: x=0 is front edge, x=7 is back edge
-  fill(img, 0,8, 2,15, SK);  fill(img, 3,8, 7,15, HR);
-  fill(img, 0,14, 2,15, SKS); // jaw shadow
-  // Left side (east) [16,8]-[23,15]: x=16 is front edge, x=23 is back edge
+  // Right side (west) [0,8]-[7,15]: x=7 is front edge (adj. to front), x=0 is back
+  fill(img, 0,8, 4,15, HR);  fill(img, 5,8, 7,15, SK);
+  fill(img, 5,14, 7,15, SKS); // jaw shadow
+  // Left side (east) [16,8]-[23,15]: x=16 is front edge, x=23 is back
   fill(img, 16,8, 18,15, SK); fill(img, 19,8, 23,15, HR);
   fill(img, 16,14, 18,15, SKS);
 
@@ -102,22 +102,16 @@ async function genSamson() {
   fill(img, 8,8, 15,8, HR);
   // y9: forehead
   px(img,8,9,HR); fill(img,9,9,14,9,SK); px(img,15,9,HR);
-  // y10: eyebrows — thick, dark
-  px(img,8,10,SKS); px(img,9,10,SK);
-  fill(img,10,10,11,10,BROW); px(img,12,10,SK); fill(img,13,10,14,10,BROW);
-  px(img,15,10,SKS);
-  // y11: eyes — WHITE sclera, dark brown iris
-  px(img,8,11,SK); px(img,9,11,SKS);
-  px(img,10,11,EYE_W); px(img,11,11,EYE_I);
-  px(img,12,11,SK);
-  px(img,13,11,EYE_I); px(img,14,11,EYE_W);
-  px(img,15,11,SKS);
-  // y12: under eyes
-  px(img,8,12,SK); px(img,9,12,SK);
-  px(img,10,12,EYE_W); px(img,11,12,EYE_I);
-  px(img,12,12,SK);
-  px(img,13,12,EYE_I); px(img,14,12,EYE_W);
-  px(img,15,12,SK);
+  // y10: eyebrows — thick, dark, SYMMETRIC (center at x=11.5)
+  px(img,8,10,SKS); fill(img,9,10,10,10,BROW); fill(img,11,10,12,10,SK); fill(img,13,10,14,10,BROW); px(img,15,10,SKS);
+  // y11: eyes — WHITE sclera, dark brown iris, SYMMETRIC
+  px(img,8,11,SK); px(img,9,11,EYE_W); px(img,10,11,EYE_I);
+  fill(img,11,11,12,11,SK);
+  px(img,13,11,EYE_I); px(img,14,11,EYE_W); px(img,15,11,SK);
+  // y12: under eyes — SYMMETRIC
+  px(img,8,12,SK); px(img,9,12,EYE_W); px(img,10,12,EYE_I);
+  fill(img,11,12,12,12,SK);
+  px(img,13,12,EYE_I); px(img,14,12,EYE_W); px(img,15,12,SK);
   // y13: nose bridge shadow
   fill(img,8,13,10,13,SK); fill(img,11,13,12,13,SKS); fill(img,13,13,15,13,SK);
   // y14: beard + mouth
@@ -127,13 +121,17 @@ async function genSamson() {
   // y15: thick beard
   fill(img,8,15,15,15,BRD);
 
-  // ── HAT [32,0] [8,8,8] — braids overlay ──
+  // ── HAT [32,0] [8,8,8] — thick hair mass + braid roots ──
   paintBox(img, 32, 0, 8, 8, 8, { all: HR });
-  // Top: braids pattern
+  // Top: braid root pattern — 7 thick lines radiating from center
   for (let x = 40; x <= 47; x++)
-    for (let y = 0; y <= 7; y++)
-      px(img, x, y, ((x + y * 2) % 5 === 0) ? HRL : HR);
-  // Back: full braids
+    for (let y = 0; y <= 7; y++) {
+      const cx = x - 43.5, cy = y - 3.5;
+      const angle = Math.atan2(cy, cx);
+      const sector = Math.floor(((angle + Math.PI) / (2 * Math.PI)) * 7);
+      px(img, x, y, (sector % 2 === 0) ? HRL : HR);
+    }
+  // Back: full thick hair roots
   for (let x = 56; x <= 63; x++)
     for (let y = 8; y <= 15; y++)
       px(img, x, y, ((x * 3 + y) % 4 === 0) ? HRL : ((x + y) % 3 === 0) ? HRH : HR);
@@ -142,7 +140,7 @@ async function genSamson() {
   fill(img, 40,10, 40,11, HR); fill(img, 47,10, 47,11, HR);
   clr(img, 41,10, 46,11);
   clr(img, 40,12, 47,15);
-  // Sides: upper half hair, lower half transparent
+  // Sides: upper half hair (braid roots), lower half transparent
   for (let x = 32; x <= 39; x++)
     for (let y = 8; y <= 11; y++)
       px(img, x, y, ((x + y) % 2 === 0) ? HR : HRL);
@@ -219,17 +217,45 @@ async function genSamson() {
   fill(img,28,58,31,61,SKS);
   fill(img,28,62,31,63,SANDD);
 
-  // ── HAIR LEFT [56,16] [2,16,2] ──
-  paintBox(img, 56, 16, 2, 16, 2, { all: HR });
-  for (let y = 20; y <= 33; y += 3) fill(img,58,y,59,y,HRL);
+  // ── 7 BRAIDS (Judges 16:13) — rope-weave pattern with gold tips ──
+  // Helper: paint a braid at UV [U,V] size [2, H, 2]
+  function paintBraid(U, V, H) {
+    paintBox(img, U, V, 2, H, 2, { all: HR });
+    // Rope weave on front [U+2, V+2] and back [U+6, V+2] faces
+    for (let y = V + 2; y <= V + 1 + H; y++) {
+      const odd = (y - V) % 2;
+      px(img, U + 2 + odd, y, HRL);       // front weave
+      px(img, U + 6 + (1 - odd), y, HRL); // back weave
+      // Side highlights every 3 rows
+      if ((y - V) % 3 === 0) {
+        px(img, U, y, HRL);     // right side
+        px(img, U + 4, y, HRL); // left side
+      }
+    }
+    // Gold bead/tie at bottom (last row of each face)
+    const bot = V + 1 + H;
+    fill(img, U + 2, bot, U + 3, bot, GOLD); // front
+    fill(img, U + 6, bot, U + 7, bot, GOLD); // back
+    fill(img, U, bot, U + 1, bot, GOLD);     // right
+    fill(img, U + 4, bot, U + 5, bot, GOLD); // left
+    // Bottom face: gold
+    fill(img, U + 4, V, U + 5, V + 1, GOLD);
+  }
 
-  // ── HAIR BACK [0,34] [6,12,2] ──
-  paintBox(img, 0, 34, 6, 12, 2, { all: HR });
-  for (let x = 3; x <= 7; x += 2) for (let y = 38; y <= 47; y += 3) px(img,x,y,HRL);
-
-  // ── HAIR RIGHT [48,34] [2,14,2] ──
-  paintBox(img, 48, 34, 2, 14, 2, { all: HR });
-  for (let y = 38; y <= 49; y += 3) fill(img,50,y,51,y,HRL);
+  // braidFL [56,16] 2×8×2 — front-left
+  paintBraid(56, 16, 8);
+  // braidFR [56,26] 2×8×2 — front-right
+  paintBraid(56, 26, 8);
+  // braidL  [56,36] 2×10×2 — left side
+  paintBraid(56, 36, 10);
+  // braidR  [56,48] 2×10×2 — right side
+  paintBraid(56, 48, 10);
+  // braidBL [0,34]  2×12×2 — back-left
+  paintBraid(0, 34, 12);
+  // braidBR [8,34]  2×12×2 — back-right
+  paintBraid(8, 34, 12);
+  // braidBC [16,32] 2×14×2 — back-center (longest)
+  paintBraid(16, 32, 14);
 
   await img.writeAsync(path.join(OUT, "samson.png"));
   console.log("✅ samson.png (64×64)");
@@ -257,32 +283,26 @@ async function genDalila() {
   paintBox(img, 0, 0, 8, 8, 8, {
     top: HR, bottom: SKD, front: SK, back: HR, right: SK, left: SK
   });
-  // Right side (west) [0,8]-[7,15]: x=0 is front edge, x=7 is back edge
-  fill(img, 0,8, 3,15, SK);  fill(img, 4,8, 7,15, HR);
-  fill(img, 0,14, 3,15, SKS);
-  // Left side (east) [16,8]-[23,15]: x=16 is front edge, x=23 is back edge
+  // Right side (west) [0,8]-[7,15]: x=7 is front edge (adj. to front), x=0 is back
+  fill(img, 0,8, 3,15, HR);  fill(img, 4,8, 7,15, SK);
+  fill(img, 4,14, 7,15, SKS);
+  // Left side (east) [16,8]-[23,15]: x=16 is front edge, x=23 is back
   fill(img, 16,8, 19,15, SK); fill(img, 20,8, 23,15, HR);
   fill(img, 16,14, 19,15, SKS);
 
   // Front face [8,8]-[15,15]
   fill(img, 8,8, 15,8, HR);                                          // y8: hairline
   px(img,8,9,HR); fill(img,9,9,14,9, SK); px(img,15,9,HR);          // y9: forehead
-  // y10: kohl eyebrows
-  px(img,8,10,SK); px(img,9,10,SK);
-  fill(img,10,10,11,10,BROW); px(img,12,10,SK); fill(img,13,10,14,10,BROW);
-  px(img,15,10,SK);
-  // y11: eyes — kohl-rimmed, WHITE sclera, green iris
-  px(img,8,11,SK); px(img,9,11,KOHL);
-  px(img,10,11,EYE_W); px(img,11,11,EYE_I);
-  px(img,12,11,SK);
-  px(img,13,11,EYE_I); px(img,14,11,EYE_W);
-  px(img,15,11,KOHL);
-  // y12: lower eyes
-  px(img,8,12,SK); px(img,9,12,KOHL);
-  px(img,10,12,EYE_W); px(img,11,12,EYE_I);
-  px(img,12,12,SK);
-  px(img,13,12,EYE_I); px(img,14,12,EYE_W);
-  px(img,15,12,KOHL);
+  // y10: kohl eyebrows — SYMMETRIC (center at x=11.5)
+  px(img,8,10,SK); fill(img,9,10,10,10,BROW); fill(img,11,10,12,10,SK); fill(img,13,10,14,10,BROW); px(img,15,10,SK);
+  // y11: eyes — kohl-rimmed, SYMMETRIC
+  px(img,8,11,KOHL); px(img,9,11,EYE_W); px(img,10,11,EYE_I);
+  fill(img,11,11,12,11,SK);
+  px(img,13,11,EYE_I); px(img,14,11,EYE_W); px(img,15,11,KOHL);
+  // y12: lower eyes — SYMMETRIC
+  px(img,8,12,KOHL); px(img,9,12,EYE_W); px(img,10,12,EYE_I);
+  fill(img,11,12,12,12,SK);
+  px(img,13,12,EYE_I); px(img,14,12,EYE_W); px(img,15,12,KOHL);
   // y13: cheeks with blush
   px(img,8,13,SK); px(img,9,13,BLUSH);
   fill(img,10,13,13,13,SK);
@@ -415,11 +435,11 @@ async function genDavid() {
     top: HR, bottom: SKD, front: SK, back: HRD, right: SK, left: SK
   });
 
-  // Right side (west) [0,8]-[7,15]: x=0 is front edge, x=7 is back edge
-  fill(img, 0,8, 2,15, SK); fill(img, 3,8, 7,15, HRD);
-  px(img,3,8,HR); px(img,4,8,HR);
-  fill(img, 0,14, 2,15, SKS); // jaw shadow
-  // Left side (east) [16,8]-[23,15]: x=16 is front edge, x=23 is back edge
+  // Right side (west) [0,8]-[7,15]: x=7 is front edge (adj. to front), x=0 is back
+  fill(img, 0,8, 4,15, HRD); fill(img, 5,8, 7,15, SK);
+  px(img,4,8,HR); px(img,3,8,HR);
+  fill(img, 5,14, 7,15, SKS); // jaw shadow
+  // Left side (east) [16,8]-[23,15]: x=16 is front edge, x=23 is back
   fill(img, 16,8, 18,15, SK); fill(img, 19,8, 23,15, HRD);
   px(img,19,8,HR); px(img,20,8,HR);
   fill(img, 16,14, 18,15, SKS);
@@ -432,22 +452,16 @@ async function genDavid() {
   px(img,8,9,HRD); px(img,9,9,HR); px(img,10,9,HRL);
   fill(img,11,9,12,9,SK);
   px(img,13,9,HRL); px(img,14,9,HR); px(img,15,9,HRD);
-  // y10: forehead + brows — soft arched brows
-  px(img,8,10,SK); px(img,9,10,SKH);
-  fill(img,10,10,11,10,BROW); px(img,12,10,SKH); fill(img,13,10,14,10,BROW);
-  px(img,15,10,SK);
-  // y11: eyes — bright green iris + white sclera (youthful, wide)
-  px(img,8,11,SK); px(img,9,11,SK);
-  px(img,10,11,EYE_W); px(img,11,11,EYE_I);
-  px(img,12,11,SK);
-  px(img,13,11,EYE_I); px(img,14,11,EYE_W);
-  px(img,15,11,SK);
-  // y12: lower eyes — same symmetric pattern
-  px(img,8,12,SK); px(img,9,12,SK);
-  px(img,10,12,EYE_W); px(img,11,12,EYE_P);
-  px(img,12,12,SK);
-  px(img,13,12,EYE_P); px(img,14,12,EYE_W);
-  px(img,15,12,SK);
+  // y10: forehead + brows — soft arched, SYMMETRIC (center at x=11.5)
+  px(img,8,10,SK); fill(img,9,10,10,10,BROW); fill(img,11,10,12,10,SKH); fill(img,13,10,14,10,BROW); px(img,15,10,SK);
+  // y11: eyes — bright green iris + white sclera, SYMMETRIC
+  px(img,8,11,SK); px(img,9,11,EYE_W); px(img,10,11,EYE_I);
+  fill(img,11,11,12,11,SK);
+  px(img,13,11,EYE_I); px(img,14,11,EYE_W); px(img,15,11,SK);
+  // y12: lower eyes — SYMMETRIC
+  px(img,8,12,SK); px(img,9,12,EYE_W); px(img,10,12,EYE_P);
+  fill(img,11,12,12,12,SK);
+  px(img,13,12,EYE_P); px(img,14,12,EYE_W); px(img,15,12,SK);
   // y13: cheeks with rosy blush + small nose — symmetric
   px(img,8,13,SK); px(img,9,13,ROSY);
   px(img,10,13,SK); fill(img,11,13,12,13,SKS); px(img,13,13,SK);
@@ -616,82 +630,102 @@ async function genDavid() {
 async function genGoliath() {
   const img = new Jimp(128, 64, 0x00000000);
 
-  // Palette
+  // Palette — armor
   const BRZ  = "#CD8B3A", BRZD = "#A07030", BRZL = "#E0A050", BRZDD = "#805820";
   const GOLD = "#D4A820", GOLDB = "#FFD700";
-  const VISOR = "#080808", EYE_R = "#CC3300";
   const CHAIN = "#909090", CHAINL = "#B0B0B0", CHAIND = "#707070";
   const LEATH = "#6B3A1A", LEATHD = "#4A2A10";
   const WOOD = "#3A2010", WOODL = "#5A3820";
+  // Palette — face
+  const SK  = "#7A5A38", SKS = "#5A4028", SKD = "#3A2818";
+  const BROW = "#2A1A0A", EYE_W = "#D0C8C0", EYE_I = "#1A0A00";
+  const BRD = "#1A0E04", BRDD = "#0E0800", MOUTH = "#4A2818";
 
-  // ── HEAD [0,0] [10,10,10] — bronze helmet ──
+  // ── HEAD [0,0] [10,10,10] — visible Philistine warrior face ──
   paintBox(img, 0, 0, 10, 10, 10, {
-    top: GOLD, bottom: BRZD, front: BRZ, back: BRZD,
-    right: BRZD, left: BRZD
+    top: BRZD, bottom: BRDD, front: SK, back: SKD,
+    right: SK, left: SK
   });
-  // Right side (west) [0,10]-[9,19]: helmet plates with rivets
-  vGrad(img, 0,10, 9,19, BRZ, BRZDD);
-  px(img,1,12,GOLD); px(img,8,12,GOLD); // rivets
-  px(img,1,16,GOLD); px(img,8,16,GOLD);
-  fill(img,0,19,9,19,LEATH); // chin strap
-  // Left side (east) [20,10]-[29,19]: matching
-  vGrad(img, 20,10, 29,19, BRZ, BRZDD);
-  px(img,21,12,GOLD); px(img,28,12,GOLD);
-  px(img,21,16,GOLD); px(img,28,16,GOLD);
-  fill(img,20,19,29,19,LEATH);
-  // Back [30,10]-[39,19]: neck guard with reinforcement
-  vGrad(img, 30,10, 39,19, BRZD, BRZDD);
-  fill(img,30,10,39,10,BRZ); // top edge highlight
-  fill(img,33,13,36,13,GOLD); // central rivet line
-  fill(img,33,17,36,17,GOLD);
-  px(img,31,15,BRZL); px(img,38,15,BRZL);
 
-  // Front face [10,10]-[19,19] — menacing visor
-  fill(img, 10,10, 19,10, BRZL); // top highlight
-  px(img,10,11,BRZ); px(img,11,11,GOLD); fill(img,12,11,17,11,BRZL); px(img,18,11,GOLD); px(img,19,11,BRZ);
-  fill(img, 10,12, 19,12, BRZ);
-  // Visor slit — dark, threatening (3 rows for depth)
-  fill(img, 10,13, 19,13, BRZDD);
-  px(img,10,14,BRZDD); px(img,11,14,EYE_R); px(img,12,14,EYE_R);
-  fill(img,13,14,16,14,VISOR);
-  px(img,17,14,EYE_R); px(img,18,14,EYE_R); px(img,19,14,BRZDD);
-  fill(img, 10,15, 19,15, BRZDD);
-  // Nasal guard — prominent
-  fill(img,10,16,13,16,BRZ); fill(img,14,16,15,16,BRZL); fill(img,16,16,19,16,BRZ);
-  fill(img,10,17,13,17,BRZ); fill(img,14,17,15,17,BRZL); fill(img,16,17,19,17,BRZ);
-  // Chin area
-  px(img,10,18,BRZD); px(img,11,18,GOLD); fill(img,12,18,17,18,BRZ); px(img,18,18,GOLD); px(img,19,18,BRZD);
-  fill(img, 10,19, 19,19, LEATH); // chin strap
+  // Right side (west) [0,10]-[9,19]: x=9 is front edge, x=0 is back
+  // Front half (near face): skin upper, beard lower; back half: dark hair/shadow
+  fill(img, 0,10, 4,10, SKD);   fill(img, 5,10, 9,10, BRZD);   // helmet shadow
+  fill(img, 0,11, 4,11, SKD);   fill(img, 5,11, 9,11, BROW);   // brow
+  fill(img, 0,12, 4,13, SKD);   fill(img, 5,12, 9,13, SK);     // face
+  fill(img, 0,14, 4,15, SKD);   fill(img, 5,14, 9,15, SK);     // cheeks
+  fill(img, 0,16, 4,16, SKD);   fill(img, 5,16, 9,16, SKS);    // jaw
+  fill(img, 0,17, 4,19, BRDD);  fill(img, 5,17, 9,19, BRD);    // beard
 
-  // ── HAT [44,0] [11,11,11] — helmet overlay (imposing, not flat) ──
+  // Left side (east) [20,10]-[29,19]: x=20 is front edge, x=29 is back
+  fill(img, 20,10, 24,10, BRZD); fill(img, 25,10, 29,10, SKD);
+  fill(img, 20,11, 24,11, BROW); fill(img, 25,11, 29,11, SKD);
+  fill(img, 20,12, 24,13, SK);   fill(img, 25,12, 29,13, SKD);
+  fill(img, 20,14, 24,15, SK);   fill(img, 25,14, 29,15, SKD);
+  fill(img, 20,16, 24,16, SKS);  fill(img, 25,16, 29,16, SKD);
+  fill(img, 20,17, 24,19, BRD);  fill(img, 25,17, 29,19, BRDD);
+
+  // Back [30,10]-[39,19]: back of head (dark, under helmet)
+  vGrad(img, 30,10, 39,19, SKD, BRDD);
+
+  // Front face [10,10]-[19,19] — fierce Philistine warrior
+  // y10: helmet shadow / brow overhang
+  fill(img, 10,10, 19,10, BRZD);
+  // y11: heavy brow ridge — thick, dark, imposing
+  px(img,10,11,SKD); fill(img,11,11,12,11,BROW); fill(img,13,11,14,11,BROW);
+  fill(img,15,11,16,11,SKD); fill(img,17,11,18,11,BROW); px(img,19,11,SKD);
+  // y12: eyes — deep-set, fierce, dark
+  px(img,10,12,SK); px(img,11,12,SKS);
+  px(img,12,12,EYE_W); px(img,13,12,EYE_I);
+  fill(img,14,12,15,12,SKS);
+  px(img,16,12,EYE_I); px(img,17,12,EYE_W);
+  px(img,18,12,SKS); px(img,19,12,SK);
+  // y13: under eyes
+  px(img,10,13,SK); px(img,11,13,SK);
+  px(img,12,13,EYE_W); px(img,13,13,EYE_I);
+  fill(img,14,13,15,13,SK);
+  px(img,16,13,EYE_I); px(img,17,13,EYE_W);
+  px(img,18,13,SK); px(img,19,13,SK);
+  // y14: nose — broad, prominent
+  fill(img,10,14,12,14,SK); fill(img,13,14,16,14,SKD); fill(img,17,14,19,14,SK);
+  // y15: cheeks / nose tip
+  fill(img,10,15,12,15,SK); fill(img,13,15,16,15,SKS); fill(img,17,15,19,15,SK);
+  // y16: mouth / upper beard
+  px(img,10,16,BRD); fill(img,11,16,12,16,SK);
+  fill(img,13,16,14,16,MOUTH); fill(img,15,16,16,16,MOUTH);
+  fill(img,17,16,18,16,SK); px(img,19,16,BRD);
+  // y17: thick beard
+  fill(img,10,17,19,17,BRD);
+  // y18: beard — darker center
+  px(img,10,18,BRD); fill(img,11,18,18,18,BRDD); px(img,19,18,BRD);
+  // y19: chin beard
+  fill(img,10,19,19,19,BRDD);
+
+  // ── HAT [44,0] [11,11,11] — open-face bronze helmet ──
   // UV: top[55,0] bottom[66,0] right[44,11] front[55,11] left[66,11] back[77,11]
-  paintBox(img, 44, 0, 11, 11, 11, { all: BRZ });
-  // Top [55,0]-[65,10]: gold crown ridge
+  paintBox(img, 44, 0, 11, 11, 11, { all: "#00000000" });
+  // Top [55,0]-[65,10]: helmet crown — imposing bronze with gold ridge
   fill(img, 55,0, 65,0, GOLDB); fill(img, 55,1, 65,1, GOLD);
   for (let x = 55; x <= 65; x++)
     for (let y = 2; y <= 10; y++)
       px(img, x, y, ((x + y) % 3 === 0) ? BRZL : BRZ);
-  // Front [55,11]-[65,21]: visor cutout with thick frame
-  fill(img, 55,11, 65,12, BRZL); // top edge highlight
-  fill(img, 55,13, 55,15, BRZ); fill(img, 65,13, 65,15, BRZ);
-  clr(img, 56,13, 64,15); // visor opening — 3 rows tall for menacing look
-  vGrad(img, 55,16, 65,21, BRZ, BRZD);
-  px(img,56,18,GOLD); px(img,64,18,GOLD); // side rivets
-  // Right/west side [44,11]-[54,21]: plates + rivets
-  vGrad(img, 44,11, 54,21, BRZL, BRZD);
-  px(img,46,14,GOLD); px(img,52,14,GOLD);
-  px(img,46,18,GOLD); px(img,52,18,GOLD);
-  fill(img,44,21,54,21,LEATH);
+  // Front [55,11]-[65,21]: helmet brow on top 3 rows, rest TRANSPARENT for face
+  fill(img, 55,11, 65,11, BRZL); // highlight edge
+  fill(img, 55,12, 65,12, BRZ);  // helmet plate
+  fill(img, 55,13, 65,13, BRZD); // dark brow edge (shadows the eyes)
+  clr(img, 55,14, 65,21);        // face opening — transparent to show head beneath
+  // Right/west side [44,11]-[54,21]: helmet covers upper 5 rows, lower transparent
+  vGrad(img, 44,11, 54,15, BRZL, BRZD);
+  px(img,47,13,GOLD); px(img,51,13,GOLD); // rivets
+  clr(img, 44,16, 54,21);
   // Left/east side [66,11]-[76,21]: matching
-  vGrad(img, 66,11, 76,21, BRZL, BRZD);
-  px(img,68,14,GOLD); px(img,74,14,GOLD);
-  px(img,68,18,GOLD); px(img,74,18,GOLD);
-  fill(img,66,21,76,21,LEATH);
-  // Back [77,11]-[87,21]: neck guard with gradient
+  vGrad(img, 66,11, 76,15, BRZL, BRZD);
+  px(img,69,13,GOLD); px(img,73,13,GOLD);
+  clr(img, 66,16, 76,21);
+  // Back [77,11]-[87,21]: full neck guard
   vGrad(img, 77,11, 87,21, BRZ, BRZDD);
   fill(img,77,11,87,11,BRZL); // top highlight
-  fill(img,80,14,84,14,GOLD); // decorative band
-  fill(img,77,21,87,21,LEATH);
+  fill(img,80,15,84,15,GOLD); // decorative band
+  fill(img,77,21,87,21,LEATH); // leather bottom edge
   // Bottom [66,0]-[76,10]: transparent (open bottom)
   clr(img, 66,0, 76,10);
 
@@ -771,6 +805,144 @@ async function genGoliath() {
   console.log("✅ goliath.png (128×64)");
 }
 
-Promise.all([genSamson(), genDalila(), genDavid(), genGoliath()])
+// ════════════════════════════════════════════════════════
+// FILISTEO — 64×64 | Soldado enemigo
+// Bronze/leather armor, hostile warrior look,
+// olive skin, dark beard, bronze helmet, scale armor.
+// ════════════════════════════════════════════════════════
+async function genPhilistine() {
+  const img = new Jimp(64, 64, 0x00000000);
+
+  // Palette
+  const SK  = "#9B7653", SKH = "#B08860", SKS = "#7A5A3A", SKD = "#5C3E25";
+  const HR  = "#1A1008", HRL = "#2C1C10";
+  const BRZ = "#8B6914", BRZL = "#A88020", BRZD = "#6B5010", BRZDD = "#4A3808";
+  const CHAIN = "#6A6A6A", CHAINL = "#888888", CHAIND = "#4A4A4A";
+  const LEATH = "#5A3A1A", LEATHD = "#3E2810", LEATHL = "#6E4E28";
+  const RED  = "#8B1A1A", REDD = "#6B1010";
+  const EYE = "#FFFFFF", PUPIL = "#1A1A1A";
+
+  // ── HEAD [0,0] [8,8,8] ──
+  // UV: top[8,0-15,7] bottom[16,0-23,7] right[0,8-7,15] front[8,8-15,15] left[16,8-23,15] back[24,8-31,15]
+  paintBox(img, 0, 0, 8, 8, 8, { all: SK });
+
+  // Face (front x=8..15, y=8..15) — symmetric
+  // Forehead highlight
+  fill(img, 10,8, 13,9, SKH);
+  // Eyes: 2×2 each, symmetric around center (x=11.5)
+  fill(img, 9,10, 10,11, EYE);     // left eye
+  fill(img, 13,10, 14,11, EYE);    // right eye
+  px(img, 10,10, PUPIL);           // left pupil (inner corner)
+  px(img, 13,10, PUPIL);           // right pupil (inner corner)
+  // Nose: center
+  px(img, 11,12, SKH); px(img, 12,12, SKH);
+  // Beard: symmetric
+  fill(img, 9,13, 14,14, HR);      // main beard
+  fill(img, 10,15, 13,15, HR);     // chin beard
+  dither(img, 9,13, 14,14, HR, HRL); // beard texture
+  px(img, 9,15, SKD); px(img, 14,15, SKD);       // jawline shadow
+
+  // Right side (x=0..7, y=8..15) — hair + ear
+  fill(img, 0,8, 7,11, HR);        // hair on right side (upper half)
+  dither(img, 0,12, 7,12, HR, SK); // hair-to-skin transition
+  px(img, 7,11, SKH);              // ear
+  px(img, 7,12, SKH);
+  fill(img, 0,13, 7,14, SK);       // lower cheek skin
+  fill(img, 0,15, 7,15, SKD);      // jaw shadow
+
+  // Left side (x=16..23, y=8..15) — mirror of right
+  fill(img, 16,8, 23,11, HR);      // hair on left side
+  dither(img, 16,12, 23,12, HR, SK); // transition
+  px(img, 16,11, SKH);             // ear
+  px(img, 16,12, SKH);
+  fill(img, 16,13, 23,14, SK);     // lower cheek
+  fill(img, 16,15, 23,15, SKD);    // jaw shadow
+
+  // Top of head (x=8..15, y=0..7) — hair under helmet
+  fill(img, 8,0, 15,7, HR);
+  dither(img, 8,0, 15,7, HR, HRL); // hair texture
+
+  // Back (x=24..31, y=8..15) — full hair
+  fill(img, 24,8, 31,13, HR);      // hair covering back
+  dither(img, 24,8, 31,13, HR, HRL);
+  fill(img, 24,14, 31,15, SKD);    // neck area
+
+  // ── HELMET OVERLAY [32,0] [8,8,8] ── (2nd layer head)
+  paintBox(img, 32, 0, 8, 8, 8, { all: "#00000000" });
+  // Bronze helmet
+  fill(img, 40,0, 47,7, BRZ);       // helmet top
+  fill(img, 40,8, 47,10, BRZL);     // helmet front top
+  fill(img, 32,8, 39,10, BRZD);     // helmet right
+  fill(img, 48,8, 55,10, BRZD);     // helmet left
+  fill(img, 56,8, 63,10, BRZ);      // helmet back
+  // Nose guard
+  px(img, 44,11, BRZL); px(img, 44,12, BRZD);
+  // Helmet crest ridge on top
+  fill(img, 43,0, 44,7, BRZL);
+
+  // ── BODY [16,16] [8,12,4] ──
+  paintBox(img, 16, 16, 8, 12, 4, { all: CHAIN });
+  // Front: scale armor pattern
+  for (let y = 20; y <= 31; y += 2) {
+    for (let x = 20; x <= 27; x += 2) {
+      px(img, x, y, CHAINL);
+    }
+  }
+  // Belt area
+  fill(img, 20,28, 27,29, LEATH);
+  px(img, 23,28, BRZL); px(img, 24,28, BRZL);   // belt buckle
+  // Red sash across chest
+  fill(img, 20,20, 21,24, RED);
+  px(img, 22,21, REDD);
+  // Back
+  dither(img, 32,20, 39,31, CHAIN, CHAIND);
+  fill(img, 32,28, 39,29, LEATHD);
+  // Sides
+  fill(img, 16,20, 19,29, CHAIND);
+  fill(img, 28,20, 31,29, CHAIND);
+
+  // ── RIGHT ARM [40,16] [4,12,4] ──
+  paintBox(img, 40, 16, 4, 12, 4, { all: SK });
+  // Shoulder armor
+  fill(img, 44,20, 47,22, BRZD);
+  fill(img, 44,23, 47,23, LEATH);
+  // Forearm: exposed skin
+  fill(img, 44,26, 47,31, SKH);
+  // Hand
+  fill(img, 44,30, 47,31, SKS);
+
+  // ── LEFT ARM [32,48] [4,12,4] ──
+  paintBox(img, 32, 48, 4, 12, 4, { all: SK });
+  // Shoulder guard (shield arm)
+  fill(img, 36,52, 39,55, BRZD);
+  fill(img, 36,52, 39,52, BRZL);
+  fill(img, 36,56, 39,56, LEATH);
+  // Hand
+  fill(img, 36,62, 39,63, SKS);
+
+  // ── RIGHT LEG [0,16] [4,12,4] ──
+  paintBox(img, 0, 16, 4, 12, 4, { all: LEATH });
+  // Sandal
+  fill(img, 4,28, 7,31, LEATHD);
+  // Shin guard
+  fill(img, 4,22, 7,25, BRZD);
+  fill(img, 4,22, 7,22, BRZL);
+  // Knee
+  px(img, 5,25, BRZL); px(img, 6,25, BRZL);
+
+  // ── LEFT LEG [16,48] [4,12,4] ──
+  paintBox(img, 16, 48, 4, 12, 4, { all: LEATH });
+  // Sandal
+  fill(img, 20,60, 23,63, LEATHD);
+  // Shin guard
+  fill(img, 20,54, 23,57, BRZD);
+  fill(img, 20,54, 23,54, BRZL);
+  px(img, 21,57, BRZL); px(img, 22,57, BRZL);
+
+  await img.writeAsync(path.join(OUT, "philistine.png"));
+  console.log("✅ philistine.png (64×64)");
+}
+
+Promise.all([genSamson(), genDalila(), genDavid(), genGoliath(), genPhilistine()])
   .then(() => console.log("\n✅ TODAS LAS TEXTURAS GENERADAS"))
   .catch(console.error);

@@ -1,0 +1,108 @@
+{
+  "format_version": "1.19.40",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "miaddon:philistine",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false,
+      "properties": {
+        "miaddon:variant": { "type": "int", "default": 0, "range": [0, 2] }
+      }
+    },
+    "components": {
+      "minecraft:type_family": { "family": ["monster", "philistine", "mob"] },
+      "minecraft:health": { "value": 30, "max": 30 },
+      "minecraft:attack": { "damage": 6 },
+      "minecraft:collision_box": { "width": 0.6, "height": 1.9 },
+      "minecraft:scale": { "value": 1.05 },
+      "minecraft:movement": { "value": 0.32 },
+      "minecraft:movement.basic": {},
+      "minecraft:jump.static": {},
+      "minecraft:navigation.walk": {
+        "can_walk": true,
+        "avoid_water": true,
+        "can_open_doors": true,
+        "can_pass_doors": true,
+        "avoid_damage_blocks": true
+      },
+      "minecraft:physics": {},
+      "minecraft:pushable": { "is_pushable": true, "is_pushable_by_piston": true },
+      "minecraft:knockback_resistance": { "value": 0.2 },
+      "minecraft:behavior.hurt_by_target": {
+        "priority": 1,
+        "alert_same_type": true
+      },
+      "minecraft:behavior.nearest_attackable_target": {
+        "priority": 2,
+        "within_radius": 24,
+        "reselect_targets": true,
+        "entity_types": [
+          {
+            "filters": {
+              "any_of": [
+                { "test": "is_family", "subject": "other", "value": "player" },
+                { "test": "is_family", "subject": "other", "value": "biblical_character" }
+              ]
+            },
+            "max_dist": 24
+          }
+        ]
+      },
+      "minecraft:behavior.melee_attack": {
+        "priority": 3,
+        "speed_multiplier": 1.25,
+        "track_target": true,
+        "reach_multiplier": 1.5
+      },
+      "minecraft:behavior.random_stroll": {
+        "priority": 5,
+        "speed_multiplier": 0.8,
+        "interval": 120
+      },
+      "minecraft:behavior.look_at_player": {
+        "priority": 6,
+        "look_distance": 10,
+        "probability": 0.02
+      },
+      "minecraft:behavior.random_look_around": {
+        "priority": 7
+      },
+      "minecraft:behavior.swim": { "priority": 0, "speed_multiplier": 1.2 },
+      "minecraft:behavior.float": { "priority": 0 },
+      "minecraft:breathable": {
+        "total_supply": 15,
+        "suffocate_time": 0,
+        "breathes_air": true,
+        "breathes_water": false
+      },
+      "minecraft:nameable": {},
+      "minecraft:experience_reward": {
+        "on_death": "query.last_hit_by_player ? math.random(8, 15) : 0"
+      },
+      "minecraft:loot": { "table": "loot_tables/entities/philistine.json" },
+      "minecraft:despawn": {
+        "despawn_from_distance": {
+          "max_distance": 128,
+          "min_distance": 64
+        }
+      },
+      "minecraft:equip_item": {}
+    },
+    "events": {
+      "minecraft:entity_spawned": {
+        "randomize": [
+          { "weight": 60 },
+          {
+            "weight": 25,
+            "set_property": { "miaddon:variant": 1 }
+          },
+          {
+            "weight": 15,
+            "set_property": { "miaddon:variant": 2 }
+          }
+        ]
+      }
+    }
+  }
+}

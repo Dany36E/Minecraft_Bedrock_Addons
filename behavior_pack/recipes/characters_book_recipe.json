@@ -1,0 +1,16 @@
+{
+  "format_version": "1.20.10",
+  "minecraft:recipe_shaped": {
+    "description": { "identifier": "miaddon:characters_book_recipe" },
+    "tags": ["crafting_table"],
+    "pattern": [" E ", "LBL", " G "],
+    "key": {
+      "E": { "item": "minecraft:ender_pearl" },
+      "L": { "item": "minecraft:lapis_lazuli" },
+      "B": { "item": "minecraft:book" },
+      "G": { "item": "minecraft:gold_ingot" }
+    },
+    "unlock": [{ "item": "minecraft:book" }],
+    "result": { "item": "miaddon:characters_book", "count": 1 }
+  }
+}

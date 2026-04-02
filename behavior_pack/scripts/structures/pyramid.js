@@ -66,8 +66,20 @@ function generatePyramid() {
         blocks.push([x, y, z, "minecraft:air"]);
     }
 
-  // Cofre en la cámara
+  // Cofre en la cámara (tesoros del faraón)
   blocks.push([mid, 1, mid, "minecraft:chest"]);
+
+  // Sarcófago (quartz = granito pulido egipcio)
+  blocks.push([mid - 1, 1, mid + 1, "minecraft:quartz_block"]);
+  blocks.push([mid, 1, mid + 1, "minecraft:quartz_block"]);
+  blocks.push([mid + 1, 1, mid + 1, "minecraft:quartz_block"]);
+  blocks.push([mid, 2, mid + 1, "minecraft:quartz_slab"]); // tapa
+
+  // Antorchas en la cámara
+  blocks.push([cx, 2, cz, "minecraft:torch"]);
+  blocks.push([cx + 4, 2, cz + 4, "minecraft:torch"]);
+  blocks.push([cx, 2, cz + 4, "minecraft:torch"]);
+  blocks.push([cx + 4, 2, cz, "minecraft:torch"]);
 
   return blocks;
 }

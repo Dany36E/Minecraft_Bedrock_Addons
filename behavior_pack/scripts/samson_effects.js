@@ -52,6 +52,7 @@ system.runInterval(() => {
       wearingHair.add(player.name);
       if (!cursedPlayers.has(player.name)) {
         player.sendMessage("§6✦ ¡El poder de Sansón desciende sobre ti! ¡Eres invencible! ✦");
+        try { player.dimension.playSound("armor.equip_chain", player.location); } catch {}
       }
     }
 
@@ -59,6 +60,7 @@ system.runInterval(() => {
     if (!hasHair && wasWearing) {
       wearingHair.delete(player.name);
       player.sendMessage("§7El poder de Sansón se desvanece...");
+      try { player.dimension.playSound("mob.armor_stand.break", player.location); } catch {}
     }
 
     // Verificar recuperación de la maldición
@@ -68,6 +70,10 @@ system.runInterval(() => {
         cursedPlayers.delete(player.name);
         player.sendMessage('§a§l✦ ¡El poder de Sansón regresa! §r§a"...y su cabello comenzó a crecer de nuevo."');
         player.sendMessage("§a§o— Jueces 16:22");
+        try {
+          player.dimension.playSound("random.levelup", player.location);
+          player.dimension.playSound("conduit.activate", player.location);
+        } catch {}
         applyBuffs(player);
       }
     }
@@ -143,6 +149,12 @@ function handleScissorsOnTarget(attacker, target) {
   target.sendMessage('§c§o"Y ella hizo rapar los siete cabellos de su cabeza..."');
   target.sendMessage("§4§l— Jueces 16:19");
 
+  // Sonidos dramáticos
+  try {
+    target.dimension.playSound("mob.sheep.shear", target.location);
+    target.dimension.playSound("random.glass", target.location);
+  } catch {}
+
   // Remover buffs positivos de la víctima
   removeBuffs(target);
 
@@ -174,10 +186,18 @@ world.afterEvents.playerInteractWithEntity.subscribe((event) => {
 // ══════════════════════════════════════════
 function handleScrollUse(player) {
   player.sendMessage("§e=== INSTRUCCIONES: ADD-ON DE SANSÓN ===");
-  player.sendMessage("§f▸ Equipa el §6Cabello de Sansón§f en tu cabeza para obtener superfuerza.");
-  player.sendMessage("§f▸ Con el casco puesto tendrás: §afuerza, velocidad, resistencia y más.");
-  player.sendMessage("§f▸ Usa las §cTijeras de Dalila§f en otro jugador para cortarle el cabello y quitarle el poder.");
-  player.sendMessage("§f▸ Después de 60 segundos, §atu poder regresa§f si sigues con el casco.");
+  player.sendMessage("§6§l▸ CABELLO DE SANSÓN (item):");
+  player.sendMessage("§f  Equípalo en tu cabeza para superfuerza.");
+  player.sendMessage("§f  Otro jugador con §cTijeras de Dalila§f te lo puede cortar.");
+  player.sendMessage("§f  Tu poder regresa después de 60 segundos.");
+  player.sendMessage("");
+  player.sendMessage("§d§l▸ HISTORIA DE SANSÓN (personajes):");
+  player.sendMessage("§f  1. Usa el §eLibro de Personajes§f → elige Sansón.");
+  player.sendMessage("§f  2. Otro jugador elige Dalila y te ataca con tijeras → ¡te corta las 7 trenzas!");
+  player.sendMessage("§f  3. Pierdes la fuerza por 60 segundos. Tu pelo crecerá de nuevo.");
+  player.sendMessage("§f  4. Con el pelo de vuelta, ve al Templo de Dagón.");
+  player.sendMessage("§f  5. Escribe: §a/scriptevent miaddon:samson_temple");
+  player.sendMessage("§f     ¡Y destruirás el templo como en Jueces 16:30!");
   player.sendMessage("§e=====================================");
 
   // Devolver el pergamino (fue consumido como food, pero no debe desaparecer)

@@ -21,7 +21,14 @@
             "math.sin(query.anim_time * 45) * 5",
             "0"
           ]
-        }
+        },
+        "braidFL": { "rotation": ["math.sin(query.anim_time * 60 + 30) * 2", "0", "1"] },
+        "braidFR": { "rotation": ["math.sin(query.anim_time * 60 + 210) * 2", "0", "-1"] },
+        "braidL":  { "rotation": ["math.sin(query.anim_time * 55) * 2.5", "0", "1.5"] },
+        "braidR":  { "rotation": ["math.sin(query.anim_time * 55 + 180) * 2.5", "0", "-1.5"] },
+        "braidBL": { "rotation": ["math.sin(query.anim_time * 50 + 60) * 2", "0", "1"] },
+        "braidBR": { "rotation": ["math.sin(query.anim_time * 50 + 240) * 2", "0", "-1"] },
+        "braidBC": { "rotation": ["math.sin(query.anim_time * 45) * 1.5", "0", "0"] }
       }
     },
 
@@ -51,23 +58,13 @@
         "head": {
           "rotation": ["-5", "0", "0"]
         },
-        "hairLeft": {
-          "rotation": [
-            "math.sin(query.anim_time * 360) * 10",
-            "0",
-            "5"
-          ]
-        },
-        "hairRight": {
-          "rotation": [
-            "math.sin(query.anim_time * 360 + 180) * 10",
-            "0",
-            "-5"
-          ]
-        },
-        "hairBack": {
-          "rotation": ["math.sin(query.anim_time * 360) * 8", "0", "0"]
-        }
+        "braidFL": { "rotation": ["math.sin(query.anim_time * 360 + 30) * 20", "0", "3"] },
+        "braidFR": { "rotation": ["math.sin(query.anim_time * 360 + 210) * 20", "0", "-3"] },
+        "braidL":  { "rotation": ["math.sin(query.anim_time * 360) * 25", "0", "5"] },
+        "braidR":  { "rotation": ["math.sin(query.anim_time * 360 + 180) * 25", "0", "-5"] },
+        "braidBL": { "rotation": ["math.sin(query.anim_time * 360 + 60) * 18", "0", "3"] },
+        "braidBR": { "rotation": ["math.sin(query.anim_time * 360 + 240) * 18", "0", "-3"] },
+        "braidBC": { "rotation": ["math.sin(query.anim_time * 360 + 90) * 15", "0", "0"] }
       }
     },
 
@@ -177,6 +174,144 @@
             "0.0": { "post": [0, 0, 0] },
             "0.5": { "post": [-20, 0, 10] },
             "2.0": { "post": [0, 0, 0] }
+          }
+        }
+      }
+    },
+
+    "animation.biblical.attack_david": {
+      "loop": false, "animation_length": 0.8,
+      "bones": {
+        "rightArm": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.15": {"post": [-90, -30, 0]},
+            "0.3": {"post": [-120, -60, 30]},
+            "0.5": {"post": [-30, 60, -20]},
+            "0.7": {"post": [20, 10, -5]},
+            "0.8": {"post": [0, 0, 0]}
+          }
+        },
+        "leftArm": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.15": {"post": [-40, 20, 10]},
+            "0.5": {"post": [-20, -10, 5]},
+            "0.8": {"post": [0, 0, 0]}
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.3": {"post": [0, -30, 0]},
+            "0.5": {"post": [5, 30, 0]},
+            "0.8": {"post": [0, 0, 0]}
+          }
+        }
+      }
+    },
+
+    "animation.biblical.attack_samson": {
+      "loop": false, "animation_length": 0.7,
+      "bones": {
+        "rightArm": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.2": {"post": [-180, 0, -20]},
+            "0.35": {"post": [-180, 0, -20]},
+            "0.5": {"post": [30, 0, -5]},
+            "0.7": {"post": [0, 0, 0]}
+          }
+        },
+        "leftArm": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.2": {"post": [-180, 0, 20]},
+            "0.35": {"post": [-180, 0, 20]},
+            "0.5": {"post": [30, 0, 5]},
+            "0.7": {"post": [0, 0, 0]}
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.2": {"post": [-15, 0, 0]},
+            "0.5": {"post": [25, 0, 0]},
+            "0.7": {"post": [0, 0, 0]}
+          }
+        },
+        "braidFL": { "rotation": { "0.0":{"post":[0,0,0]}, "0.2":{"post":[-30,0,5]}, "0.5":{"post":[20,0,-3]}, "0.7":{"post":[0,0,0]} } },
+        "braidFR": { "rotation": { "0.0":{"post":[0,0,0]}, "0.2":{"post":[-30,0,-5]}, "0.5":{"post":[20,0,3]}, "0.7":{"post":[0,0,0]} } },
+        "braidBC": { "rotation": { "0.0":{"post":[0,0,0]}, "0.2":{"post":[-40,0,0]}, "0.5":{"post":[25,0,0]}, "0.7":{"post":[0,0,0]} } }
+      }
+    },
+
+    "animation.biblical.attack_dalila": {
+      "loop": false, "animation_length": 0.4,
+      "bones": {
+        "rightArm": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.1": {"post": [-60, 20, -10]},
+            "0.2": {"post": [-20, -30, -5]},
+            "0.3": {"post": [-30, -20, -5]},
+            "0.4": {"post": [0, 0, 0]}
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.1": {"post": [0, 15, 0]},
+            "0.2": {"post": [5, -20, 0]},
+            "0.4": {"post": [0, 0, 0]}
+          }
+        },
+        "leftArm": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.1": {"post": [-30, -10, 15]},
+            "0.2": {"post": [-10, 10, 10]},
+            "0.4": {"post": [0, 0, 0]}
+          }
+        }
+      }
+    },
+
+    "animation.biblical.attack_goliath": {
+      "loop": false, "animation_length": 1.0,
+      "bones": {
+        "rightArm": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.2": {"post": [-160, -10, -30]},
+            "0.5": {"post": [-160, -10, -30]},
+            "0.6": {"post": [40, 0, -5]},
+            "0.8": {"post": [20, 0, 0]},
+            "1.0": {"post": [0, 0, 0]}
+          }
+        },
+        "body": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.5": {"post": [-10, 0, 0]},
+            "0.6": {"post": [20, 0, 0]},
+            "1.0": {"post": [0, 0, 0]}
+          }
+        },
+        "head": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.5": {"post": [-15, 0, 0]},
+            "0.6": {"post": [10, 0, 0]},
+            "1.0": {"post": [0, 0, 0]}
+          }
+        },
+        "leftArm": {
+          "rotation": {
+            "0.0": {"post": [0, 0, 0]},
+            "0.2": {"post": [-30, 0, 20]},
+            "0.6": {"post": [-20, 0, 15]},
+            "1.0": {"post": [0, 0, 0]}
           }
         }
       }
