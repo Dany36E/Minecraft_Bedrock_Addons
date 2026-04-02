@@ -29,6 +29,7 @@ const CUBE_STRENGTH_RATIO = 3;      // cada N cubos = +1 nivel de strength
 // ═══════════════════════════════════════════
 let arenaActive = false;
 const playerCubes = new Map();       // playerName -> cubeCount
+const lastPositions = new Map();     // playerName -> { x, y, z, dimId }
 
 /**
  * Activa el modo arena.
@@ -140,6 +141,22 @@ function spawnCubeDrops(dimension, location, count) {
 }
 
 // ═══════════════════════════════════════════
+// RASTREO DE POSICIONES (para saber dónde murió)
+// ═══════════════════════════════════════════
+
+system.runInterval(() => {
+  for (const player of world.getAllPlayers()) {
+    try {
+      const loc = player.location;
+      lastPositions.set(player.name, {
+        x: loc.x, y: loc.y, z: loc.z,
+        dimId: player.dimension.id,
+      });
+    } catch {}
+  }
+}, 2);
+
+// ═══════════════════════════════════════════
 // EVENTO: Caja (entidad) muere → suelta Power Cube
 // ═══════════════════════════════════════════
 
@@ -151,14 +168,10 @@ world.afterEvents.entityDie.subscribe((ev) => {
     try {
       const loc = entity.location;
       const dim = entity.dimension;
-
-      // Efecto visual de destrucción
       try {
         dim.runCommand(`particle minecraft:totem_particle ${loc.x} ${loc.y + 0.5} ${loc.z}`);
         dim.runCommand(`playsound random.levelup @a[r=16] ${loc.x} ${loc.y} ${loc.z} 1 1.5`);
       } catch {}
-
-      // Spawnear 1 Power Cube drop
       spawnCubeDrops(dim, loc, 1);
     } catch {}
     return;
@@ -168,61 +181,66 @@ world.afterEvents.entityDie.subscribe((ev) => {
   if (!arenaActive) return;
   if (entity.typeId !== "minecraft:player") return;
 
-  const name = entity.name;
-  const cubes = playerCubes.get(name) || 0;
-
-  if (cubes > 0) {
-    const toDrop = Math.ceil(cubes / 2);
-
-    // Capturar ubicación y dimensión ANTES de que la entidad se invalide
-    let deathLoc, deathDim;
-    try {
-      deathLoc = { x: entity.location.x, y: entity.location.y, z: entity.location.z };
-      deathDim = entity.dimension;
-    } catch {
-      // Si no podemos leer la ubicación del muerto, buscamos al jugador por nombre
-      try {
-        const p = world.getAllPlayers().find(pl => pl.name === name);
-        if (p) {
-          deathLoc = { x: p.location.x, y: p.location.y, z: p.location.z };
-          deathDim = p.dimension;
-        }
-      } catch {}
-    }
-
-    // Resetear cubos INMEDIATAMENTE (antes del timeout)
-    playerCubes.delete(name);
-
-    // Spawnear drops en ubicación de muerte (con delay para seguridad)
-    if (deathLoc && deathDim) {
-      system.runTimeout(() => {
-        try {
-          spawnCubeDrops(deathDim, deathLoc, toDrop);
-        } catch {}
-      }, 5);
-    }
-
-    // Mensaje y limpieza de efectos al respawnear
-    system.runTimeout(() => {
-      try {
-        const p = world.getAllPlayers().find(pl => pl.name === name);
-        if (p) {
-          removeAllCubeEffects(p);
-          p.sendMessage(`§c✦ Soltaste ${toDrop} Power Cube(s) al morir. §7No te queda ninguno.`);
-        }
-      } catch {}
-    }, 40);
-  } else {
-    // Jugador sin cubos muere — limpiar por seguridad
-    playerCubes.delete(name);
-    system.runTimeout(() => {
-      try {
-        const p = world.getAllPlayers().find(pl => pl.name === name);
-        if (p) { removeAllCubeEffects(p); }
-      } catch {}
-    }, 40);
-  }
+  handlePlayerDeath(entity.name);
 });
+
+// Backup: detectar muerte vía playerSpawn (respawn después de morir)
+const pendingDeaths = new Set();
+
+world.afterEvents.playerSpawn.subscribe((ev) => {
+  if (ev.initialSpawn) return;
+  if (!arenaActive) return;
+  const player = ev.player;
+  const name = player.name;
+
+  // Si entityDie ya procesó esta muerte, solo limpiar efectos
+  if (!pendingDeaths.has(name)) {
+    // entityDie NO se disparó — procesar muerte aquí
+    handlePlayerDeath(name);
+  }
+  pendingDeaths.delete(name);
+
+  // Siempre limpiar efectos al respawnear
+  system.runTimeout(() => {
+    try { removeAllCubeEffects(player); } catch {}
+  }, 5);
+});
+
+function handlePlayerDeath(name) {
+  // Evitar doble procesamiento
+  if (pendingDeaths.has(name)) return;
+  pendingDeaths.add(name);
+
+  const cubes = playerCubes.get(name) || 0;
+  playerCubes.delete(name);
+
+  if (cubes <= 0) return;
+
+  const toDrop = Math.ceil(cubes / 2);
+
+  // Usar la última posición rastreada
+  const saved = lastPositions.get(name);
+  if (!saved) return;
+
+  const dim = world.getDimension(saved.dimId);
+  const deathLoc = { x: saved.x, y: saved.y, z: saved.z };
+
+  system.runTimeout(() => {
+    try {
+      spawnCubeDrops(dim, deathLoc, toDrop);
+    } catch {}
+  }, 5);
+
+  system.runTimeout(() => {
+    try {
+      const p = world.getAllPlayers().find(pl => pl.name === name);
+      if (p) {
+        removeAllCubeEffects(p);
+        p.sendMessage(`§c✦ Soltaste ${toDrop} Power Cube(s) al morir.`);
+      }
+    } catch {}
+  }, 40);
+}
 
 // ═══════════════════════════════════════════
 // LOOP: Recolección de Power Cubes por proximidad
