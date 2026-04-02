@@ -4,8 +4,8 @@
 // ══════════════════════════════════════════
 // MECÁNICA DE ARBUSTOS (INVISIBILIDAD) — UNIVERSAL
 // ══════════════════════════════════════════
-// • Funciona en CUALQUIER mapa — detecta bloques short_grass en el mundo
-// • Cuando un jugador está parado en/sobre un bloque short_grass → INVISIBLE
+// • Funciona en CUALQUIER mapa — detecta bloques tall_grass en el mundo
+// • Cuando un jugador está parado en/sobre un bloque tall_grass → INVISIBLE
 // • Si el jugador ATACA → se hace VISIBLE inmediatamente
 // • 2 segundos (40 ticks) sin atacar → vuelve a ser invisible si sigue en arbusto
 // • Al salir del arbusto → pierde invisibilidad
@@ -19,7 +19,7 @@ import { world, system } from "@minecraft/server";
 // ═══════════════════════════════════════════
 const REVEAL_DURATION = 40;    // 2 segundos = 40 ticks
 const CHECK_INTERVAL = 5;      // verificar cada 5 ticks
-const BUSH_BLOCK = "minecraft:short_grass";
+const BUSH_BLOCK = "minecraft:tall_grass";
 
 // Estado por jugador
 const playerBushState = new Map();
@@ -46,11 +46,13 @@ function isInBush(player) {
   const py = Math.floor(loc.y);
   const pz = Math.floor(loc.z);
 
-  // Verificar bloque en los pies, 1 arriba, y 1 abajo
+  // Verificar bloques alrededor del jugador (pies, abajo, arriba)
+  // tall_grass ocupa 2 bloques: la mitad inferior tiene el typeId
   const offsets = [
     { x: px, y: py, z: pz },
     { x: px, y: py - 1, z: pz },
     { x: px, y: py + 1, z: pz },
+    { x: px, y: py - 2, z: pz },
   ];
 
   for (const pos of offsets) {

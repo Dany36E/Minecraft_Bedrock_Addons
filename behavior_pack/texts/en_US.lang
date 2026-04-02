@@ -27,5 +27,10 @@ entity.miaddon:dalila_entity.name=Dalila
 entity.miaddon:david_entity.name=David
 entity.miaddon:goliath_entity.name=Goliát
 
+## Brawl Stars
+item.miaddon:power_box_spawner.name=§eCaja de Poder
+entity.miaddon:power_box.name=Caja de Poder
+entity.miaddon:power_cube_drop.name=Power Cube
+
 ## Test
 item.miaddon:test_sword.name=Test Sword

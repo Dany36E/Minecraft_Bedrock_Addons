@@ -173,32 +173,54 @@ world.afterEvents.entityDie.subscribe((ev) => {
 
   if (cubes > 0) {
     const toDrop = Math.ceil(cubes / 2);
-    const toKeep = cubes - toDrop;
 
-    // Spawnear drops en la ubicación de muerte
+    // Capturar ubicación y dimensión ANTES de que la entidad se invalide
+    let deathLoc, deathDim;
     try {
-      spawnCubeDrops(entity.dimension, entity.location, toDrop);
-    } catch {}
-
-    // Actualizar cubos del jugador
-    if (toKeep > 0) {
-      playerCubes.set(name, toKeep);
-    } else {
-      playerCubes.delete(name);
+      deathLoc = { x: entity.location.x, y: entity.location.y, z: entity.location.z };
+      deathDim = entity.dimension;
+    } catch {
+      // Si no podemos leer la ubicación del muerto, buscamos al jugador por nombre
+      try {
+        const p = world.getAllPlayers().find(pl => pl.name === name);
+        if (p) {
+          deathLoc = { x: p.location.x, y: p.location.y, z: p.location.z };
+          deathDim = p.dimension;
+        }
+      } catch {}
     }
 
+    // Resetear cubos INMEDIATAMENTE (antes del timeout)
+    playerCubes.delete(name);
+
+    // Spawnear drops en ubicación de muerte (con delay para seguridad)
+    if (deathLoc && deathDim) {
+      system.runTimeout(() => {
+        try {
+          spawnCubeDrops(deathDim, deathLoc, toDrop);
+        } catch {}
+      }, 5);
+    }
+
+    // Mensaje y limpieza de efectos al respawnear
     system.runTimeout(() => {
       try {
         const p = world.getAllPlayers().find(pl => pl.name === name);
         if (p) {
           removeAllCubeEffects(p);
-          if (toKeep > 0) {
-            applyCubeEffects(p);
-          }
-          p.sendMessage(`§c✦ Soltaste ${toDrop} Power Cube(s) al morir. ${toKeep > 0 ? `§eQuedan: ${toKeep}` : "§7No te queda ninguno."}`);
+          p.sendMessage(`§c✦ Soltaste ${toDrop} Power Cube(s) al morir. §7No te queda ninguno.`);
         }
       } catch {}
-    }, 20);
+    }, 40);
+  } else {
+    // Jugador sin cubos muere — limpiar por seguridad
+    playerCubes.delete(name);
+    system.runTimeout(() => {
+      try {
+        const p = world.getAllPlayers().find(pl => pl.name === name);
+        if (p) { removeAllCubeEffects(p); }
+      } catch {}
+    }, 40);
   }
 });
 
@@ -245,11 +267,54 @@ system.runInterval(() => {
   if (!arenaActive) return;
 
   for (const player of world.getAllPlayers()) {
-    const cubes = playerCubes.get(player.name);
-    if (cubes && cubes > 0) {
-      try {
+    const cubes = playerCubes.get(player.name) || 0;
+    try {
+      if (cubes > 0) {
         player.onScreenDisplay.setActionBar(`§6⚡ Power Cubes: §e${cubes}`);
-      } catch {}
-    }
+      } else {
+        player.onScreenDisplay.setActionBar(`§7⚡ Power Cubes: 0`);
+      }
+    } catch {}
   }
 }, 40);
+
+// ═══════════════════════════════════════════
+// ITEM: Colocar Power Box manualmente
+// ═══════════════════════════════════════════
+
+world.beforeEvents.itemUse.subscribe((ev) => {
+  if (ev.itemStack?.typeId !== "miaddon:power_box_spawner") return;
+  ev.cancel = true;
+  const player = ev.source;
+  system.run(() => {
+    try {
+      const hit = player.getBlockFromViewDirection({ maxDistance: 7 });
+      if (!hit) {
+        player.sendMessage("§c✦ Apunta a un bloque para colocar la Caja de Poder.");
+        return;
+      }
+      const face = hit.faceLocation;
+      const block = hit.block;
+      const norm = { x: 0, y: 0, z: 0 };
+      switch (hit.face) {
+        case "Up":    norm.y = 1; break;
+        case "Down":  norm.y = -1; break;
+        case "North": norm.z = -1; break;
+        case "South": norm.z = 1; break;
+        case "East":  norm.x = 1; break;
+        case "West":  norm.x = -1; break;
+      }
+      const spawnPos = {
+        x: block.x + 0.5 + norm.x,
+        y: block.y + 0.5 + norm.y,
+        z: block.z + 0.5 + norm.z,
+      };
+      player.dimension.spawnEntity("miaddon:power_box", spawnPos);
+      player.dimension.runCommand(
+        `playsound random.pop ${player.name} ${spawnPos.x} ${spawnPos.y} ${spawnPos.z} 0.5 1.0`
+      );
+    } catch (e) {
+      player.sendMessage("§c✦ No se pudo colocar la caja aquí.");
+    }
+  });
+});

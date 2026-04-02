@@ -37,6 +37,9 @@
     },
     "miaddon:bronze_spear": {
       "textures": "textures/items/bronze_spear"
+    },
+    "miaddon:power_box_spawner": {
+      "textures": "textures/items/power_box_spawner"
     }
   }
 }

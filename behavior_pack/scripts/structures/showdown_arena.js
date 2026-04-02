@@ -274,36 +274,85 @@ function generateBlocks() {
   hayRect(26, 21, 26, 23);
 
   // ═══════════════════════════════════════════
-  // ARBUSTOS (short_grass sobre grass_block)
+  // ARBUSTOS (tall_grass sobre grass_block)
   // Clusters de 2-4 bloques, principalmente NE y SW
   // ═══════════════════════════════════════════
 
   const bushClusters = [
-    // NE area (grupo grande visible en imagen)
+    // NE area (grupo grande)
     [36, 2], [37, 2], [38, 3], [39, 3],
     [37, 4], [38, 4],
     [40, 6], [41, 7],
+    [39, 5], [40, 5],  // extensión NE
 
     // SW area (espejo rotacional)
     [6, 41], [7, 41], [5, 42], [6, 42],
     [7, 40], [6, 40],
     [3, 38], [4, 37],
+    [4, 39], [5, 39],  // extensión SW
 
-    // Pequeños clusters adicionales
-    [33, 14], [33, 15],   // interior NE
-    [11, 29], [11, 30],   // interior SW
-    [2, 22], [2, 23],     // borde oeste
-    [42, 21], [42, 22],   // borde este
+    // NW area (nuevo cluster grande)
+    [3, 5], [4, 5], [3, 6], [4, 6],
+    [5, 3], [6, 3],
+    [2, 8], [3, 8],
 
-    // Centro-norte
-    [20, 9], [21, 9],
-    // Centro-sur
-    [23, 35], [24, 35],
+    // SE area (espejo de NW)
+    [40, 39], [41, 39], [40, 38], [41, 38],
+    [38, 41], [39, 41],
+    [42, 36], [41, 36],
+
+    // Interior NE (ampliado)
+    [33, 14], [33, 15], [34, 14],
+    [35, 11], [36, 11],
+    [32, 18], [33, 18],
+
+    // Interior SW (ampliado)
+    [11, 29], [11, 30], [10, 30],
+    [8, 33], [9, 33],
+    [11, 26], [12, 26],
+
+    // Interior NW (nuevo)
+    [10, 14], [11, 14],
+    [8, 11], [9, 11],
+
+    // Interior SE (nuevo)
+    [33, 30], [34, 30],
+    [35, 33], [36, 33],
+
+    // Borde oeste (ampliado)
+    [2, 22], [2, 23], [2, 20], [2, 24],
+    [3, 18], [3, 26],
+
+    // Borde este (ampliado)
+    [42, 21], [42, 22], [42, 20], [42, 24],
+    [41, 18], [41, 26],
+
+    // Centro-norte (ampliado)
+    [20, 9], [21, 9], [19, 10], [20, 10],
+
+    // Centro-sur (ampliado)
+    [23, 35], [24, 35], [24, 34], [25, 34],
+
+    // Cerca de la piscina central (nuevos)
+    [17, 18], [17, 19],
+    [27, 25], [27, 26],
+
+    // Corredores laterales (nuevos)
+    [6, 18], [6, 19],
+    [38, 25], [38, 26],
+
+    // Spawns intermedios (nuevos)
+    [14, 8], [15, 8],
+    [29, 36], [30, 36],
+
+    // Esquinas interiores del centro
+    [19, 15], [20, 16],
+    [24, 28], [25, 29],
   ];
 
   for (const [x, z] of bushClusters) {
     add(x, 1, z, "minecraft:grass_block");  // soporte para hierba
-    add(x, 2, z, "minecraft:short_grass");
+    add(x, 2, z, "minecraft:tall_grass");
   }
 
   // ═══════════════════════════════════════════

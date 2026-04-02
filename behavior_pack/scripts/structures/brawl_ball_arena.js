@@ -51,11 +51,11 @@ function generateBlocks() {
     addWall2(x, z, "minecraft:blue_concrete");
   }
 
-  // Helper: arbusto (short_grass sobre grass_block)
+  // Helper: arbusto (tall_grass sobre grass_block, 2 bloques alto)
   function addBush(positions) {
     for (const [x, z] of positions) {
       add(x, 1, z, "minecraft:grass_block");  // soporte para hierba
-      add(x, 2, z, "minecraft:short_grass");
+      add(x, 2, z, "minecraft:tall_grass");
     }
   }
 
@@ -266,7 +266,7 @@ function generateBlocks() {
   // Espejo para mitad roja
   for (const [x, z] of bushPatternsBlueHalf) {
     add(x, 1, mirrorZ(z), "minecraft:grass_block");
-    add(x, 2, mirrorZ(z), "minecraft:short_grass");
+    add(x, 2, mirrorZ(z), "minecraft:tall_grass");
   }
 
   // Arbustos junto a las porterías
