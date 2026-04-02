@@ -513,9 +513,12 @@ export function endMatch(winner) {
   emit("matchEnd", { winner, mode });
   setState(GameState.FINISHED);
 
+  // Snapshot de jugadores para los timers (antes de que resetMatch los limpie)
+  const matchPlayers = new Set(lobbyPlayers);
+
   // Avisar antes del auto-reset (#14)
   const t1 = system.runTimeout(() => {
-    for (const name of lobbyPlayers) {
+    for (const name of matchPlayers) {
       const p = world.getAllPlayers().find(pl => pl.name === name);
       if (p) {
         try { p.sendMessage("§7La partida se reiniciará en §e5 §7segundos..."); } catch {}
@@ -523,23 +526,12 @@ export function endMatch(winner) {
     }
   }, 100); // 5s después del fin → aviso
 
-  // Auto-reset después de 10 segundos
-  const t2 = system.runTimeout(() => {
-    for (const name of lobbyPlayers) {
-      const p = world.getAllPlayers().find(pl => pl.name === name);
-      if (p) {
-        try { p.sendMessage("§7✦ Partida reiniciada. Usa el §eBrawl Master §7para jugar de nuevo."); } catch {}
-      }
-    }
-    resetMatch();
-  }, 200);
-
-  // Teleportar al hub antes del reset (si existe)
+  // Teleportar al hub (si existe) antes del reset
   const t3 = system.runTimeout(() => {
     if (hubSpawnPos && hubDimId) {
       try {
         const hubDim = world.getDimension(hubDimId);
-        for (const name of lobbyPlayers) {
+        for (const name of matchPlayers) {
           const p = world.getAllPlayers().find(pl => pl.name === name);
           if (p) {
             try { p.teleport(hubSpawnPos, { dimension: hubDim }); } catch {}
@@ -548,6 +540,17 @@ export function endMatch(winner) {
       } catch {}
     }
   }, 160);
+
+  // Auto-reset después de 10 segundos
+  const t2 = system.runTimeout(() => {
+    for (const name of matchPlayers) {
+      const p = world.getAllPlayers().find(pl => pl.name === name);
+      if (p) {
+        try { p.sendMessage("§7✦ Partida reiniciada. Usa el §eBrawl Master §7para jugar de nuevo."); } catch {}
+      }
+    }
+    resetMatch();
+  }, 200);
 
   pendingEndTimers = [t1, t2, t3];
 }

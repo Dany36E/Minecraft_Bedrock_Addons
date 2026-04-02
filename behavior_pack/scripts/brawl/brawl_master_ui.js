@@ -358,6 +358,21 @@ async function startArenaFromHub(player, arenaKey) {
     l: 45,
   };
 
+  // Limpiar arena anterior del otro modo si existe (#7 acumulación)
+  for (const [otherKey, otherArena] of Object.entries(ARENAS)) {
+    if (otherKey === arenaKey) continue;
+    const otherOffset = hubStructure.meta.arenaOffsets[otherKey];
+    if (!otherOffset) continue;
+    const otherSize = otherArena.size || {
+      w: otherKey === "showdown_arena" ? 45 : 27, h: 6, l: 45,
+    };
+    clearArena(hubDim, {
+      x: hub.x + otherOffset.rx,
+      y: hub.y + otherOffset.ry,
+      z: hub.z + otherOffset.rz,
+    }, otherSize);
+  }
+
   player.sendMessage("§6★ Construyendo arena...");
 
   buildArena({
