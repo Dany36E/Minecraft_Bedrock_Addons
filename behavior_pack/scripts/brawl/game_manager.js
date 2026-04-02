@@ -185,6 +185,19 @@ export function startCountdown() {
   if (state !== GameState.LOBBY) return false;
   if (lobbyPlayers.size < 2) return false;
 
+  // Auto-assign: en Brawl Ball, asignar jugadores sin equipo
+  if (mode === GameMode.BRAWL_BALL) {
+    for (const name of lobbyPlayers) {
+      if (!teams.blue.has(name) && !teams.red.has(name)) {
+        if (teams.blue.size <= teams.red.size) {
+          teams.blue.add(name);
+        } else {
+          teams.red.add(name);
+        }
+      }
+    }
+  }
+
   countdownTicksLeft = config.countdownSeconds * 20;
 
   // Inicializar jugadores vivos
@@ -250,6 +263,8 @@ function setupPlayer(player) {
   } catch {}
   // Equipamiento básico
   try { player.runCommand("give @s stone_sword 1"); } catch {}
+  // Devolver Brawl Master al jugador (se pierde con clear)
+  try { player.runCommand("give @s miaddon:brawl_master 1"); } catch {}
 }
 
 function teleportPlayersToSpawns() {
@@ -342,6 +357,21 @@ export function reportDeath(playerName, killerName) {
           fadeInDuration: 0, stayDuration: 40, fadeOutDuration: 15,
           subtitle: `§7Quedaste §e#${placement} §7de §e${total}`,
         });
+      } catch {}
+    }
+
+    // Kill feed + sonido de muerte para todos (#12, #13)
+    for (const name of lobbyPlayers) {
+      if (name === playerName) continue;
+      const o = world.getAllPlayers().find(pl => pl.name === name);
+      if (!o) continue;
+      try {
+        if (killerName) {
+          o.sendMessage(`§c☠ §e${killerName} §7eliminó a §e${playerName} §8[#${placement}]`);
+        } else {
+          o.sendMessage(`§c☠ §e${playerName} §7fue eliminado §8[#${placement}]`);
+        }
+        o.playSound("mob.wither.death");
       } catch {}
     }
 
@@ -538,14 +568,19 @@ system.runInterval(() => {
             let hudText = `§f⏱ ${timeStr}`;
             if (mode === GameMode.BRAWL_BALL) {
               hudText += `  §9${scores.blue} §f- §c${scores.red}`;
+              hudText += `  §7R${currentRound}/${config.brawlBallRounds}`;
             } else if (mode === GameMode.SHOWDOWN) {
-              const cubes = getPlayerCubes(name);
-              hudText += `  §6⚡${cubes}`;
-              hudText += `  §7Vivos: §e${alivePlayers.size}`;
-              // Indicador de gas
-              if (matchTicksElapsed < config.gasStartDelay) {
-                const gasIn = Math.ceil((config.gasStartDelay - matchTicksElapsed) / 20);
-                hudText += `  §5Gas: ${gasIn}s`;
+              if (deadPlayers.has(name)) {
+                // HUD para espectadores
+                hudText = `§7☠ Espectando  §f⏱ ${timeStr}  §7Vivos: §e${alivePlayers.size}`;
+              } else {
+                const cubes = getPlayerCubes(name);
+                hudText += `  §6⚡${cubes}`;
+                hudText += `  §7Vivos: §e${alivePlayers.size}`;
+                if (matchTicksElapsed < config.gasStartDelay) {
+                  const gasIn = Math.ceil((config.gasStartDelay - matchTicksElapsed) / 20);
+                  hudText += `  §5Gas: ${gasIn}s`;
+                }
               }
             }
             p.onScreenDisplay.setActionBar(hudText);
@@ -598,14 +633,24 @@ world.afterEvents.playerSpawn.subscribe((ev) => {
   const player = ev.player;
   if (!lobbyPlayers.has(player.name)) return;
 
-  // Backup: si entityDie no procesó la muerte
+  // Brawl Ball respawns son manejados por respawn_system, no interferir
+  if (mode === GameMode.BRAWL_BALL) {
+    // Solo backup de muerte si no se procesó
+    if (!processedDeaths.has(player.name)) {
+      handlePlayerDeathDrop(player.name);
+      reportDeath(player.name, null);
+    }
+    processedDeaths.delete(player.name);
+    return;
+  }
+
+  // Showdown: backup de muerte + spectator mode
   if (!processedDeaths.has(player.name)) {
     handlePlayerDeathDrop(player.name);
     reportDeath(player.name, null);
   }
   processedDeaths.delete(player.name);
 
-  // Showdown: modo espectador para muertos
   if (mode === GameMode.SHOWDOWN && deadPlayers.has(player.name)) {
     system.runTimeout(() => {
       try {

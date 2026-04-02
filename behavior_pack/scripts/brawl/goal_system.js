@@ -5,7 +5,7 @@ import { world, system } from "@minecraft/server";
 import {
   GameState, GameMode,
   getState, getMode, getArenaOrigin, getLobbyPlayers,
-  getTeams, reportGoal, on,
+  getTeams, reportGoal, on, getArenaSize,
 } from "./game_manager.js";
 
 // ═══════════════════════════════════════════
@@ -15,7 +15,6 @@ const BALL_SPAWN = { rx: 13, ry: 2, rz: 22 };  // Centro del campo
 const BLUE_GOAL = { x1: 9, x2: 17, z1: 0, z2: 2 };     // z=0..2
 const RED_GOAL  = { x1: 9, x2: 17, z1: 42, z2: 44 };    // z=42..44
 const PICKUP_RADIUS = 1.8;
-const KICK_SPEED = 1.2;
 const BALL_CHECK_INTERVAL = 3;
 
 // ═══════════════════════════════════════════
@@ -25,6 +24,8 @@ let ballEntity = null;     // La entidad pelota en el mundo
 let ballCarrier = null;    // Nombre del jugador que la lleva
 let ballActive = false;
 let roundResetting = false;
+let lastKicker = null;     // Último jugador que pateó (para atribuir gol)
+let lastKickerTeam = null; // Equipo del pateador
 
 // ═══════════════════════════════════════════
 // INICIO / FIN
@@ -33,20 +34,25 @@ let roundResetting = false;
 on("stateChange", ({ newState }) => {
   if (newState === GameState.PLAYING && getMode() === GameMode.BRAWL_BALL) {
     ballActive = true;
+    lastKicker = null;
+    lastKickerTeam = null;
     spawnBall();
   }
   if (newState === GameState.FINISHED || newState === GameState.IDLE) {
     ballActive = false;
     ballCarrier = null;
+    lastKicker = null;
+    lastKickerTeam = null;
     removeBallEntity();
   }
 });
 
 on("roundEnd", () => {
   if (getMode() !== GameMode.BRAWL_BALL) return;
-  // Reset de ronda: ball vuelve al centro
   roundResetting = true;
   ballCarrier = null;
+  lastKicker = null;
+  lastKickerTeam = null;
   removeBallEntity();
 
   system.runTimeout(() => {
@@ -105,8 +111,9 @@ system.runInterval(() => {
   if (ballCarrier) {
     const carrier = world.getAllPlayers().find(p => p.name === ballCarrier);
     if (!carrier) {
-      // Carrier desconectado → soltar pelota
-      dropBall(null);
+      // Carrier desconectado → respawnear pelota en centro
+      ballCarrier = null;
+      respawnBallAtCenter();
       return;
     }
 
@@ -122,7 +129,6 @@ system.runInterval(() => {
           z: loc.z + Math.cos(yaw) * 1.2,
         });
       } catch {
-        // Entidad perdida, re-spawnear
         spawnBallAtPlayer(carrier);
       }
     }
@@ -135,19 +141,17 @@ system.runInterval(() => {
 
       const carrierTeam = getPlayerTeam(ballCarrier);
 
-      // Equipo azul mete gol en portería roja (z=42..44)
       if (carrierTeam === "blue" &&
           rx >= RED_GOAL.x1 && rx <= RED_GOAL.x2 &&
           rz >= RED_GOAL.z1 && rz <= RED_GOAL.z2) {
-        scoreGoal("blue", carrier);
+        scoreGoal("blue", carrier.name);
         return;
       }
 
-      // Equipo rojo mete gol en portería azul (z=0..2)
       if (carrierTeam === "red" &&
           rx >= BLUE_GOAL.x1 && rx <= BLUE_GOAL.x2 &&
           rz >= BLUE_GOAL.z1 && rz <= BLUE_GOAL.z2) {
-        scoreGoal("red", carrier);
+        scoreGoal("red", carrier.name);
         return;
       }
     } catch {}
@@ -155,9 +159,30 @@ system.runInterval(() => {
     return;
   }
 
-  // Nadie lleva la pelota → verificar pickup
+  // Nadie lleva la pelota → verificar goal de pelota libre + pickup
   if (!ballEntity) return;
 
+  try {
+    const ballLoc = ballEntity.location;
+    const rx = ballLoc.x - origin.x;
+    const rz = ballLoc.z - origin.z;
+
+    // Gol de pelota libre (pateada hacia la portería)
+    if (lastKickerTeam === "blue" &&
+        rx >= RED_GOAL.x1 && rx <= RED_GOAL.x2 &&
+        rz >= RED_GOAL.z1 && rz <= RED_GOAL.z2) {
+      scoreGoal("blue", lastKicker);
+      return;
+    }
+    if (lastKickerTeam === "red" &&
+        rx >= BLUE_GOAL.x1 && rx <= BLUE_GOAL.x2 &&
+        rz >= BLUE_GOAL.z1 && rz <= BLUE_GOAL.z2) {
+      scoreGoal("red", lastKicker);
+      return;
+    }
+  } catch {}
+
+  // Pickup
   try {
     const ballLoc = ballEntity.location;
 
@@ -213,6 +238,8 @@ world.afterEvents.entityHitBlock.subscribe((ev) => {
 function kickBall(player) {
   const carrier = ballCarrier;
   ballCarrier = null;
+  lastKicker = carrier;
+  lastKickerTeam = getPlayerTeam(carrier);
 
   if (!ballEntity) {
     spawnBallAtPlayer(player);
@@ -225,28 +252,41 @@ function kickBall(player) {
     const yaw = rot.y * Math.PI / 180;
     const pitch = rot.x * Math.PI / 180;
 
-    // Dirección de la patada
     const dx = -Math.sin(yaw) * Math.cos(pitch);
     const dz = Math.cos(yaw) * Math.cos(pitch);
 
-    // Mover la pelota 8 bloques en la dirección
     const kickDist = 8;
     const startX = loc.x;
     const startY = loc.y;
     const startZ = loc.z;
 
-    // Animación suave: más pasos con easing
     let step = 0;
     const totalSteps = 16;
 
     const kickInterval = system.runInterval(() => {
       step++;
       const t = step / totalSteps;
-      // Easing out cuadrático para efecto natural
       const eased = 1 - Math.pow(1 - t, 2);
       const cx = startX + dx * kickDist * eased;
       const cy = startY + 0.5 + Math.sin(t * Math.PI) * 1.5;
       const cz = startZ + dz * kickDist * eased;
+
+      // Colisión con bloques sólidos
+      try {
+        const dim = player.dimension;
+        const blockAt = dim.getBlock({
+          x: Math.floor(cx),
+          y: Math.floor(cy),
+          z: Math.floor(cz),
+        });
+        if (blockAt && blockAt.typeId !== "minecraft:air" &&
+            blockAt.typeId !== "minecraft:tall_grass" &&
+            !blockAt.typeId.includes("water")) {
+          // Pelota choca → se detiene un bloque antes
+          system.clearRun(kickInterval);
+          return;
+        }
+      } catch {}
 
       try {
         if (ballEntity) {
@@ -275,12 +315,30 @@ function kickBall(player) {
 
 function dropBall(loc) {
   ballCarrier = null;
-  if (!ballEntity && loc) {
+  if (loc) {
+    if (ballEntity) return; // ball entity ya existe en el mundo
     try {
       const dim = world.getDimension("overworld");
       ballEntity = dim.spawnEntity("miaddon:brawl_ball", loc);
     } catch {}
+  } else {
+    // loc null (carrier desconectado) → respawnear en centro
+    respawnBallAtCenter();
   }
+}
+
+function respawnBallAtCenter() {
+  removeBallEntity();
+  const origin = getArenaOrigin();
+  if (!origin) return;
+  try {
+    const dim = world.getDimension("overworld");
+    ballEntity = dim.spawnEntity("miaddon:brawl_ball", {
+      x: origin.x + BALL_SPAWN.rx + 0.5,
+      y: origin.y + BALL_SPAWN.ry + 0.5,
+      z: origin.z + BALL_SPAWN.rz + 0.5,
+    });
+  } catch {}
 }
 
 function spawnBallAtPlayer(player) {
@@ -322,8 +380,10 @@ world.afterEvents.entityDie.subscribe((ev) => {
 // GOL
 // ═══════════════════════════════════════════
 
-function scoreGoal(team, scorer) {
+function scoreGoal(team, scorerName) {
   ballCarrier = null;
+  lastKicker = null;
+  lastKickerTeam = null;
   removeBallEntity();
 
   const teamName = team === "blue" ? "§9Azul" : "§cRojo";
@@ -334,14 +394,13 @@ function scoreGoal(team, scorer) {
       try {
         p.onScreenDisplay.setTitle(`${teamName} §6¡GOOOL!`, {
           fadeInDuration: 0, stayDuration: 40, fadeOutDuration: 15,
-          subtitle: `§7Gol de §e${scorer.name}`,
+          subtitle: `§7Gol de §e${scorerName || "?"}`,
         });
         p.playSound("random.totem");
       } catch {}
     }
   }
 
-  // Reportar al game_manager (esto dispara roundEnd)
   reportGoal(team);
 }
 

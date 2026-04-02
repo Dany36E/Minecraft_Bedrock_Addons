@@ -294,14 +294,6 @@ function tryStartCountdown(player) {
   const lobby = getLobbyPlayers();
   const m = getMode();
 
-  if (m === GameMode.BRAWL_BALL) {
-    const t = getTeams();
-    if (t.blue.size === 0 || t.red.size === 0) {
-      player.sendMessage("§c✦ Ambos equipos necesitan al menos 1 jugador.");
-      return;
-    }
-  }
-
   if (lobby.size < 2) {
     player.sendMessage("§c✦ Se necesitan al menos 2 jugadores.");
     return;
@@ -330,7 +322,7 @@ async function openSettings(player) {
     .slider("Duración Showdown (segundos)", 60, 600, 30, cfg.showdownDuration / 20)
     .slider("Duración Brawl Ball (segundos)", 60, 600, 30, cfg.brawlBallDuration / 20)
     .slider("Countdown (segundos)", 3, 10, 1, cfg.countdownSeconds)
-    .slider("Rondas Brawl Ball", 1, 5, 2, cfg.brawlBallRounds)
+    .slider("Goles para ganar BB", 2, 5, 1, cfg.brawlBallRounds)
     .slider("Respawn delay (segundos)", 2, 10, 1, cfg.respawnDelaySec)
     .slider("Gas: inicio (segundos)", 10, 120, 10, cfg.gasStartDelay / 20)
     .slider("Gas: intervalo de cierre (seg)", 5, 60, 5, cfg.gasShrinkInterval / 20);

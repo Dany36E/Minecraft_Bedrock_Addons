@@ -1,11 +1,17 @@
 // breakable_walls.js — Paredes rompibles (hay_block)
 // Los bloques de heno se destruyen al ser golpeados por jugadores
+// Solo funciona durante una partida activa
 //
 import { world, system } from "@minecraft/server";
+import { getState, GameState } from "./game_manager.js";
 
 const BREAKABLE_BLOCK = "minecraft:hay_block";
 
 world.afterEvents.entityHitBlock.subscribe((ev) => {
+  // Solo funcionar durante una partida activa
+  const st = getState();
+  if (st !== GameState.PLAYING && st !== GameState.COUNTDOWN) return;
+
   const attacker = ev.damagingEntity;
   if (!attacker || attacker.typeId !== "minecraft:player") return;
 

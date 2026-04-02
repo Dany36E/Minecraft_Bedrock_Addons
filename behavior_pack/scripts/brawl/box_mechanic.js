@@ -15,6 +15,7 @@
 //   → Otros jugadores pueden recogerlos
 //
 import { world, system } from "@minecraft/server";
+import { getDeadPlayers } from "./game_manager.js";
 
 // ═══════════════════════════════════════════
 // CONFIGURACIÓN
@@ -225,6 +226,9 @@ system.runInterval(() => {
 
   for (const player of players) {
     try {
+      // Espectadores muertos no recogen cubos
+      if (getDeadPlayers().has(player.name)) continue;
+
       const nearby = player.dimension.getEntities({
         type: "miaddon:power_cube_drop",
         location: player.location,
