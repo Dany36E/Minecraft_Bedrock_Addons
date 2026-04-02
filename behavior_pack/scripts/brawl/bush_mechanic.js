@@ -111,12 +111,13 @@ system.runInterval(() => {
   for (const player of world.getAllPlayers()) {
     // Solo jugadores activos en partida
     if (!inMatch || !getLobbyPlayers().has(player.name) || getDeadPlayers().has(player.name)) {
-      // Si tenía estado de bush, limpiarlo
+      // Limpiar estado de bush completamente (#1 memory leak fix)
       const oldState = playerBushState.get(player.name);
-      if (oldState && oldState.wasInvisible) {
-        try { player.removeEffect("invisibility"); } catch {}
-        oldState.wasInvisible = false;
-        oldState.inBush = false;
+      if (oldState) {
+        if (oldState.wasInvisible) {
+          try { player.removeEffect("invisibility"); } catch {}
+        }
+        playerBushState.delete(player.name);
       }
       continue;
     }

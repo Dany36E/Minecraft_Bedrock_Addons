@@ -101,14 +101,15 @@ function teleportToSpawn(player) {
   const isBlue = t.blue.has(player.name);
   const spawn = isBlue ? BLUE_SPAWN : RED_SPAWN;
 
-  // Pequeña variación aleatoria para no stackearse
-  const offset = (Math.random() - 0.5) * 4;
+  // Variación aleatoria en X y Z para no stackearse (#2)
+  const offsetX = (Math.random() - 0.5) * 4;
+  const offsetZ = (Math.random() - 0.5) * 4;
 
   try {
     player.teleport({
-      x: origin.x + spawn.rx + offset,
+      x: origin.x + spawn.rx + offsetX,
       y: origin.y + spawn.ry,
-      z: origin.z + spawn.rz,
+      z: origin.z + spawn.rz + offsetZ,
     });
   } catch {}
 }

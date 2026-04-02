@@ -4,7 +4,7 @@
 import { world, system } from "@minecraft/server";
 import {
   GameState, GameMode,
-  getState, getMode, getArenaOrigin, getArenaSize,
+  getState, getMode, getArenaOrigin, getArenaSize, getArenaDim,
   getConfig, getMatchTicksElapsed, getLobbyPlayers, getDeadPlayers, on,
 } from "./game_manager.js";
 
@@ -130,7 +130,7 @@ system.runInterval(() => {
   if (!origin) return;
 
   try {
-    const dim = world.getDimension("overworld");
+    const dim = getArenaDim() || world.getDimension("overworld");
     const y = origin.y + 2;
 
     // Dibujar círculo de partículas en el borde

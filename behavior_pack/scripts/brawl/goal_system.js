@@ -17,12 +17,14 @@ const BLUE_GOAL = { x1: 9, x2: 17, z1: 0, z2: 2 };     // z=0..2
 const RED_GOAL  = { x1: 9, x2: 17, z1: 42, z2: 44 };    // z=42..44
 const PICKUP_RADIUS = 1.8;
 const BALL_CHECK_INTERVAL = 3;
+const CARRY_TIMEOUT_TICKS = 200; // 10 segundos máximo con el balón
 
 // ═══════════════════════════════════════════
 // ESTADO DE LA PELOTA
 // ═══════════════════════════════════════════
 let ballEntity = null;     // La entidad pelota en el mundo
 let ballCarrier = null;    // Nombre del jugador que la lleva
+let ballCarryStartTick = 0; // Tick en que se recogió el balón
 let ballActive = false;
 let roundResetting = false;
 let lastKicker = null;     // Último jugador que pateó (para atribuir gol)
@@ -123,6 +125,18 @@ system.runInterval(() => {
       return;
     }
 
+    // Timeout de carry: máx 10 seg con el balón (#4)
+    if (system.currentTick - ballCarryStartTick >= CARRY_TIMEOUT_TICKS) {
+      ballCarrier = null;
+      respawnBallAtCenter();
+      for (const n of getLobbyPlayers()) {
+        const o = world.getAllPlayers().find(pl => pl.name === n);
+        if (o) try { o.sendMessage("§c⚽ ¡Tiempo de posesión agotado! Pelota al centro."); } catch {}
+      }
+      try { carrier.playSound("note.bass"); } catch {}
+      return;
+    }
+
     // Mover la pelota con el jugador (un poco adelante)
     if (ballEntity) {
       try {
@@ -205,6 +219,7 @@ system.runInterval(() => {
 
       if (dist <= PICKUP_RADIUS) {
         ballCarrier = name;
+        ballCarryStartTick = system.currentTick;
         try {
           p.playSound("random.pop");
           p.sendMessage("§e⚽ ¡Tienes la pelota! §7Ataca para patear.");
