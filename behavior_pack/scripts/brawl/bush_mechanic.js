@@ -4,8 +4,8 @@
 // ══════════════════════════════════════════
 // MECÁNICA DE ARBUSTOS (INVISIBILIDAD) — UNIVERSAL
 // ══════════════════════════════════════════
-// • Funciona en CUALQUIER mapa — detecta bloques oak_leaves en el mundo
-// • Cuando un jugador está parado en/sobre un bloque oak_leaves → INVISIBLE
+// • Funciona en CUALQUIER mapa — detecta bloques short_grass en el mundo
+// • Cuando un jugador está parado en/sobre un bloque short_grass → INVISIBLE
 // • Si el jugador ATACA → se hace VISIBLE inmediatamente
 // • 2 segundos (40 ticks) sin atacar → vuelve a ser invisible si sigue en arbusto
 // • Al salir del arbusto → pierde invisibilidad
@@ -19,7 +19,7 @@ import { world, system } from "@minecraft/server";
 // ═══════════════════════════════════════════
 const REVEAL_DURATION = 40;    // 2 segundos = 40 ticks
 const CHECK_INTERVAL = 5;      // verificar cada 5 ticks
-const BUSH_BLOCK = "minecraft:oak_leaves";
+const BUSH_BLOCK = "minecraft:short_grass";
 
 // Estado por jugador
 const playerBushState = new Map();

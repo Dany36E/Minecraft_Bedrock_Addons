@@ -1,0 +1,16 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "miaddon:power_box",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/power_box" },
+      "geometry": { "default": "geometry.miaddon.power_box" },
+      "render_controllers": ["controller.render.biblical_default"],
+      "spawn_egg": {
+        "base_color": "#C17A3E",
+        "overlay_color": "#808080"
+      }
+    }
+  }
+}

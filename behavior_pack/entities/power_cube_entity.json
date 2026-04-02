@@ -1,0 +1,31 @@
+{
+  "format_version": "1.19.40",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "miaddon:power_cube_drop",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:type_family": { "family": ["power_cube", "inanimate"] },
+      "minecraft:collision_box": { "width": 0.4, "height": 0.4 },
+      "minecraft:physics": { "has_gravity": true, "has_collision": true },
+      "minecraft:pushable": { "is_pushable": false, "is_pushable_by_piston": false },
+      "minecraft:knockback_resistance": { "value": 1.0 },
+      "minecraft:damage_sensor": {
+        "triggers": [
+          { "deals_damage": "no", "cause": "all" }
+        ]
+      },
+      "minecraft:movement": { "value": 0 },
+      "minecraft:scale": { "value": 0.6 },
+      "minecraft:despawn": {
+        "despawn_from_distance": {
+          "max_distance": 128,
+          "min_distance": 96
+        }
+      }
+    }
+  }
+}

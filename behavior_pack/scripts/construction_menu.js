@@ -4,7 +4,7 @@ import { world, system, EquipmentSlot } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
 import { STRUCTURES } from "./structures/all_structures.js";
 import { onStructureBuilt } from "./quest_system.js";
-import { activateArena } from "./brawl/box_mechanic.js";
+import { activateArena, spawnPowerBoxes } from "./brawl/box_mechanic.js";
 
 // ══════════════════════════════════════════
 // Lore bíblico de cada estructura
@@ -412,10 +412,24 @@ function buildStructure(player, structureId, basePos, rotation) {
         player.sendMessage(`§7  (${placed} bloques colocados, ${failed} fallaron)`);
       }
 
-      // Activar mecánicas de arena si la estructura tiene meta (cajas con HP)
+      // Activar mecánicas de arena si la estructura tiene meta
       if (structure.meta) {
         activateArena();
-        player.sendMessage("§6⚡ Modo Arena activado — cajas con HP y arbustos con invisibilidad.");
+
+        // Spawnear cajas de Power Cubes como entidades
+        if (structure.meta.boxPositions && structure.meta.boxPositions.length > 0) {
+          const worldBoxPositions = structure.meta.boxPositions.map(([rx, ry, rz]) => {
+            const [rotX, rotZ] = rotateVector(rx, rz, rotation);
+            return { x: basePos.x + rotX, y: basePos.y + ry, z: basePos.z + rotZ };
+          });
+          // Esperar un momento para que los chunks estén cargados
+          system.runTimeout(() => {
+            spawnPowerBoxes(player.dimension, worldBoxPositions);
+            player.sendMessage(`§6⚡ ${worldBoxPositions.length} cajas de Power Cubes spawneadas.`);
+          }, 10);
+        }
+
+        player.sendMessage("§a🌿 Modo Arena activado — arbustos con invisibilidad.");
       }
 
       try { onStructureBuilt(player); } catch {}

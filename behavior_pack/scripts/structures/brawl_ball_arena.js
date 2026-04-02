@@ -51,10 +51,11 @@ function generateBlocks() {
     addWall2(x, z, "minecraft:blue_concrete");
   }
 
-  // Helper: arbusto (oak_leaves, 1 alto)
+  // Helper: arbusto (short_grass sobre grass_block)
   function addBush(positions) {
     for (const [x, z] of positions) {
-      add(x, 2, z, "minecraft:oak_leaves");
+      add(x, 1, z, "minecraft:grass_block");  // soporte para hierba
+      add(x, 2, z, "minecraft:short_grass");
     }
   }
 
@@ -246,7 +247,7 @@ function generateBlocks() {
   addPillar(CX + 3, CZ);
 
   // ═══════════════════════════════════════════
-  // ARBUSTOS (oak_leaves) — escondites
+  // ARBUSTOS (short_grass) — escondites
   // Clusters de 2-4 bloques en esquinas y laterales
   // ═══════════════════════════════════════════
 
@@ -264,7 +265,8 @@ function generateBlocks() {
   addBush(bushPatternsBlueHalf);
   // Espejo para mitad roja
   for (const [x, z] of bushPatternsBlueHalf) {
-    add(x, 2, mirrorZ(z), "minecraft:oak_leaves");
+    add(x, 1, mirrorZ(z), "minecraft:grass_block");
+    add(x, 2, mirrorZ(z), "minecraft:short_grass");
   }
 
   // Arbustos junto a las porterías

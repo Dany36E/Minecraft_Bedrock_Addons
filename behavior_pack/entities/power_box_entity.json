@@ -1,0 +1,33 @@
+{
+  "format_version": "1.19.40",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "miaddon:power_box",
+      "is_spawnable": false,
+      "is_summonable": true,
+      "is_experimental": false
+    },
+    "components": {
+      "minecraft:type_family": { "family": ["power_box", "inanimate"] },
+      "minecraft:health": { "value": 30, "max": 30 },
+      "minecraft:collision_box": { "width": 0.95, "height": 0.95 },
+      "minecraft:physics": { "has_gravity": true, "has_collision": true },
+      "minecraft:pushable": { "is_pushable": false, "is_pushable_by_piston": false },
+      "minecraft:knockback_resistance": { "value": 1.0 },
+      "minecraft:movement": { "value": 0 },
+      "minecraft:movement.basic": {},
+      "minecraft:navigation.walk": {
+        "can_walk": false,
+        "avoid_water": true
+      },
+      "minecraft:scale": { "value": 1.0 },
+      "minecraft:nameable": {},
+      "minecraft:despawn": {
+        "despawn_from_distance": {
+          "max_distance": 128,
+          "min_distance": 96
+        }
+      }
+    }
+  }
+}

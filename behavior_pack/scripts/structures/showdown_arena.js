@@ -274,7 +274,7 @@ function generateBlocks() {
   hayRect(26, 21, 26, 23);
 
   // ═══════════════════════════════════════════
-  // ARBUSTOS (oak_leaves)
+  // ARBUSTOS (short_grass sobre grass_block)
   // Clusters de 2-4 bloques, principalmente NE y SW
   // ═══════════════════════════════════════════
 
@@ -302,37 +302,15 @@ function generateBlocks() {
   ];
 
   for (const [x, z] of bushClusters) {
-    add(x, 2, z, "minecraft:oak_leaves");
+    add(x, 1, z, "minecraft:grass_block");  // soporte para hierba
+    add(x, 2, z, "minecraft:short_grass");
   }
 
   // ═══════════════════════════════════════════
-  // CAJAS DE POWER CUBES (barrel)
-  // ~24 posiciones repartidas por el mapa
+  // CAJAS DE POWER CUBES — ya NO se colocan como bloques.
+  // Se spawnean como entidades (miaddon:power_box) después
+  // de construir la arena. Ver meta.boxPositions.
   // ═══════════════════════════════════════════
-
-  const boxPositions = [
-    // Anillo exterior — spawns de jugadores
-    [2, 2],     [22, 1],    [42, 2],
-    [1, 22],                [43, 22],
-    [2, 42],    [22, 43],   [42, 42],
-
-    // Segundo anillo
-    [8, 7],    [22, 6],    [36, 7],
-    [7, 15],               [37, 15],
-    [7, 29],               [37, 29],
-    [8, 37],   [22, 38],   [36, 37],
-
-    // Tercer anillo (cerca del centro)
-    [15, 19],  [29, 19],
-    [15, 25],  [29, 25],
-
-    // Centro (jackpot)
-    [22, 17],  [22, 27],
-  ];
-
-  for (const [x, z] of boxPositions) {
-    add(x, 2, z, "minecraft:barrel");
-  }
 
   // ═══════════════════════════════════════════
   // ILUMINACIÓN

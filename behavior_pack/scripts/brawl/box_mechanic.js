@@ -2,35 +2,39 @@
 // @minecraft/server 1.12.0
 //
 // ══════════════════════════════════════════
-// MECÁNICA DE CAJAS (POWER CUBE BOXES)
+// MECÁNICA DE CAJAS (ENTIDADES) + POWER CUBES
 // ══════════════════════════════════════════
-// • Cuando el modo arena está activo, TODOS los barrels se convierten en cajas con HP
-// • Al golpearlas, pierden HP y muestran partículas de daño
-// • Al llegar a 0 HP, se destruyen y otorgan un Power Cube al jugador
-// • Power Cubes son acumulables:
-//   - Cada cubo: +10% daño (efecto strength) + ~2 corazones extra (health_boost)
-//   - Los efectos duran mientras el jugador esté vivo
-//   - Al morir, se pierden TODOS los cubos y efectos
-// • En Minecraft: 8 golpes para destruir una caja
+// • La caja es una ENTIDAD (miaddon:power_box) con HP real
+//   → Los jugadores la atacan con armas → al morir suelta Power Cube
+//   → Sin knockback, estática, no se mueve
+// • Power Cube es una ENTIDAD coleccionable (miaddon:power_cube_drop)
+//   → Flota/gira en el mundo, se recoge al acercarse (1.5 bloques)
+//   → Al recogerlo: +10% daño (strength) + 2 corazones (health_boost)
+// • Al morir un jugador:
+//   → Suelta la MITAD de sus Power Cubes como entidades coleccionables
+//   → Otros jugadores pueden recogerlos
 //
 import { world, system } from "@minecraft/server";
 
 // ═══════════════════════════════════════════
-// ESTADO DEL SISTEMA
+// CONFIGURACIÓN
 // ═══════════════════════════════════════════
-const BOX_MAX_HP = 8;               // golpes para destruir una caja
-let arenaActive = false;             // modo arena activo
-const boxHPMap = new Map();          // "x,y,z" -> hp (auto-registrado al primer golpe)
-const playerCubes = new Map();       // playerName -> cubeCount
+const PICKUP_RADIUS = 1.5;          // bloques para recoger un cubo
+const PICKUP_CHECK_INTERVAL = 4;    // cada 4 ticks
 const CUBE_HEALTH_PER = 2;          // niveles de health_boost por cubo
 const CUBE_STRENGTH_RATIO = 3;      // cada N cubos = +1 nivel de strength
 
+// ═══════════════════════════════════════════
+// ESTADO DEL SISTEMA
+// ═══════════════════════════════════════════
+let arenaActive = false;
+const playerCubes = new Map();       // playerName -> cubeCount
+
 /**
- * Activa el modo arena — todos los barrels tendrán HP.
+ * Activa el modo arena.
  */
 export function activateArena() {
   arenaActive = true;
-  boxHPMap.clear();
   playerCubes.clear();
   for (const player of world.getAllPlayers()) {
     removeAllCubeEffects(player);
@@ -42,7 +46,6 @@ export function activateArena() {
  */
 export function deactivateArena() {
   arenaActive = false;
-  boxHPMap.clear();
   clearAllCubes();
 }
 
@@ -56,18 +59,26 @@ export function clearAllCubes() {
   }
 }
 
-/**
- * Obtiene si el modo arena está activo.
- */
-export function isArenaActive() {
-  return arenaActive;
-}
+export function isArenaActive() { return arenaActive; }
+export function getPlayerCubes(playerName) { return playerCubes.get(playerName) || 0; }
 
 /**
- * Obtiene el conteo de cubos de un jugador.
+ * Spawnea cajas de Power Cube (entidades) en las posiciones dadas.
+ * @param {Dimension} dimension
+ * @param {Array<{x:number,y:number,z:number}>} positions — coordenadas MUNDIALES
  */
-export function getPlayerCubes(playerName) {
-  return playerCubes.get(playerName) || 0;
+export function spawnPowerBoxes(dimension, positions) {
+  for (const pos of positions) {
+    try {
+      dimension.spawnEntity("miaddon:power_box", {
+        x: pos.x + 0.5,
+        y: pos.y + 0.5,
+        z: pos.z + 0.5,
+      });
+    } catch (e) {
+      // El chunk podría no estar cargado
+    }
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -78,13 +89,11 @@ function applyCubeEffects(player) {
   const cubes = playerCubes.get(player.name) || 0;
   if (cubes <= 0) return;
 
-  // Health Boost: +2 corazones por cubo
   const healthLevel = Math.min(cubes * CUBE_HEALTH_PER - 1, 255);
   try {
     player.addEffect("health_boost", 999999, { amplifier: healthLevel, showParticles: false });
   } catch {}
 
-  // Strength: +1 nivel cada CUBE_STRENGTH_RATIO cubos
   const strengthLevel = Math.max(Math.floor(cubes / CUBE_STRENGTH_RATIO) - 1, 0);
   if (strengthLevel >= 0) {
     try {
@@ -101,103 +110,132 @@ function removeAllCubeEffects(player) {
 }
 
 // ═══════════════════════════════════════════
-// GOLPEAR UNA CAJA
+// Otorgar cubos a un jugador
 // ═══════════════════════════════════════════
 
-function hitBox(player, blockLocation) {
-  const key = `${blockLocation.x},${blockLocation.y},${blockLocation.z}`;
+function givePlayerCubes(player, amount) {
+  const current = (playerCubes.get(player.name) || 0) + amount;
+  playerCubes.set(player.name, current);
+  applyCubeEffects(player);
+}
 
-  // Auto-registrar la caja al primer golpe
-  if (!boxHPMap.has(key)) {
-    boxHPMap.set(key, BOX_MAX_HP);
-  }
+// ═══════════════════════════════════════════
+// Spawnear Power Cube drops (entidades coleccionables)
+// ═══════════════════════════════════════════
 
-  let hp = boxHPMap.get(key) - 1;
-  boxHPMap.set(key, hp);
-
-  // Partículas y sonido de daño
-  const dim = player.dimension;
-  const pos = blockLocation;
-  try {
-    dim.runCommand(`particle minecraft:villager_angry ${pos.x + 0.5} ${pos.y + 1} ${pos.z + 0.5}`);
-    dim.runCommand(`playsound hit.wood ${player.name} ${pos.x} ${pos.y} ${pos.z} 0.5 1.2`);
-  } catch {}
-
-  // Barra de vida visual
-  const bars = "§a" + "█".repeat(Math.max(hp, 0)) + "§c" + "░".repeat(BOX_MAX_HP - Math.max(hp, 0));
-  player.sendMessage(`§7Caja: ${bars} §7(${Math.max(hp, 0)}/${BOX_MAX_HP})`);
-
-  if (hp <= 0) {
-    // ¡Caja destruida! → dar Power Cube
-    boxHPMap.delete(key);
-
-    // Remover el barrel
+function spawnCubeDrops(dimension, location, count) {
+  for (let i = 0; i < count; i++) {
     try {
-      const block = dim.getBlock(blockLocation);
-      if (block) block.setType("minecraft:air");
+      // Dispersar ligeramente los cubos
+      const angle = (Math.PI * 2 * i) / Math.max(count, 1);
+      const spread = Math.min(count, 4) * 0.3;
+      const spawnPos = {
+        x: location.x + Math.cos(angle) * spread,
+        y: location.y + 1,
+        z: location.z + Math.sin(angle) * spread,
+      };
+      dimension.spawnEntity("miaddon:power_cube_drop", spawnPos);
     } catch {}
-
-    // Efecto de destrucción
-    try {
-      dim.runCommand(`particle minecraft:totem_particle ${pos.x + 0.5} ${pos.y + 1} ${pos.z + 0.5}`);
-      dim.runCommand(`playsound random.levelup ${player.name} ${pos.x} ${pos.y} ${pos.z} 1 1.5`);
-    } catch {}
-
-    // Otorgar Power Cube
-    const currentCubes = (playerCubes.get(player.name) || 0) + 1;
-    playerCubes.set(player.name, currentCubes);
-    applyCubeEffects(player);
   }
 }
 
 // ═══════════════════════════════════════════
-// EVENTO: Interceptar rotura de barrels cuando arena activa
-// ═══════════════════════════════════════════
-
-world.beforeEvents.playerBreakBlock.subscribe((ev) => {
-  if (!arenaActive) return;
-
-  const block = ev.block;
-  if (block.typeId !== "minecraft:barrel") return;
-
-  // Cancelar la rotura normal — usamos nuestro sistema de HP
-  ev.cancel = true;
-
-  // Golpear la caja (en el siguiente tick para evitar problemas con beforeEvents)
-  const playerName = ev.player.name;
-  const loc = { x: block.location.x, y: block.location.y, z: block.location.z };
-  system.run(() => {
-    const player = world.getAllPlayers().find(p => p.name === playerName);
-    if (player) hitBox(player, loc);
-  });
-});
-
-// ═══════════════════════════════════════════
-// EVENTO: Perder cubos al morir
+// EVENTO: Caja (entidad) muere → suelta Power Cube
 // ═══════════════════════════════════════════
 
 world.afterEvents.entityDie.subscribe((ev) => {
-  if (!arenaActive) return;
   const entity = ev.deadEntity;
+
+  // Caja destruida → soltar Power Cube
+  if (entity.typeId === "miaddon:power_box") {
+    try {
+      const loc = entity.location;
+      const dim = entity.dimension;
+
+      // Efecto visual de destrucción
+      try {
+        dim.runCommand(`particle minecraft:totem_particle ${loc.x} ${loc.y + 0.5} ${loc.z}`);
+        dim.runCommand(`playsound random.levelup @a[r=16] ${loc.x} ${loc.y} ${loc.z} 1 1.5`);
+      } catch {}
+
+      // Spawnear 1 Power Cube drop
+      spawnCubeDrops(dim, loc, 1);
+    } catch {}
+    return;
+  }
+
+  // Jugador muere → soltar la MITAD de sus cubos
+  if (!arenaActive) return;
   if (entity.typeId !== "minecraft:player") return;
 
   const name = entity.name;
   const cubes = playerCubes.get(name) || 0;
 
   if (cubes > 0) {
-    playerCubes.delete(name);
+    const toDrop = Math.ceil(cubes / 2);
+    const toKeep = cubes - toDrop;
+
+    // Spawnear drops en la ubicación de muerte
+    try {
+      spawnCubeDrops(entity.dimension, entity.location, toDrop);
+    } catch {}
+
+    // Actualizar cubos del jugador
+    if (toKeep > 0) {
+      playerCubes.set(name, toKeep);
+    } else {
+      playerCubes.delete(name);
+    }
 
     system.runTimeout(() => {
       try {
         const p = world.getAllPlayers().find(pl => pl.name === name);
         if (p) {
           removeAllCubeEffects(p);
-          p.sendMessage(`§c✦ Has perdido ${cubes} Power Cube(s) al morir.`);
+          if (toKeep > 0) {
+            applyCubeEffects(p);
+          }
+          p.sendMessage(`§c✦ Soltaste ${toDrop} Power Cube(s) al morir. ${toKeep > 0 ? `§eQuedan: ${toKeep}` : "§7No te queda ninguno."}`);
         }
       } catch {}
     }, 20);
   }
 });
+
+// ═══════════════════════════════════════════
+// LOOP: Recolección de Power Cubes por proximidad
+// ═══════════════════════════════════════════
+
+system.runInterval(() => {
+  const players = world.getAllPlayers();
+  if (players.length === 0) return;
+
+  for (const player of players) {
+    try {
+      const nearby = player.dimension.getEntities({
+        type: "miaddon:power_cube_drop",
+        location: player.location,
+        maxDistance: PICKUP_RADIUS,
+      });
+
+      for (const cube of nearby) {
+        try {
+          // Recoger el cubo
+          cube.remove();
+          givePlayerCubes(player, 1);
+
+          // Efecto de recolección
+          const loc = player.location;
+          try {
+            player.dimension.runCommand(
+              `playsound random.orb ${player.name} ${loc.x} ${loc.y} ${loc.z} 0.8 1.4`
+            );
+          } catch {}
+        } catch {}
+      }
+    } catch {}
+  }
+}, PICKUP_CHECK_INTERVAL);
 
 // ═══════════════════════════════════════════
 // HUD: Mostrar cubos actuales periódicamente

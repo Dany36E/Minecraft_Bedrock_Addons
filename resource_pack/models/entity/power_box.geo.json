@@ -1,0 +1,54 @@
+{
+  "format_version": "1.12.0",
+  "minecraft:geometry": [
+    {
+      "description": {
+        "identifier": "geometry.miaddon.power_box",
+        "texture_width": 64,
+        "texture_height": 64,
+        "visible_bounds_width": 2,
+        "visible_bounds_height": 2,
+        "visible_bounds_offset": [0, 0.5, 0]
+      },
+      "bones": [
+        {
+          "name": "body",
+          "pivot": [0, 0, 0],
+          "cubes": [
+            {
+              "origin": [-7, 0, -7],
+              "size": [14, 14, 14],
+              "uv": [0, 0]
+            }
+          ]
+        },
+        {
+          "name": "strap_h",
+          "parent": "body",
+          "pivot": [0, 7, 0],
+          "cubes": [
+            {
+              "origin": [-7.5, 5, -7.5],
+              "size": [15, 2, 15],
+              "inflate": 0.1,
+              "uv": [0, 28]
+            }
+          ]
+        },
+        {
+          "name": "strap_v",
+          "parent": "body",
+          "pivot": [0, 7, 0],
+          "cubes": [
+            {
+              "origin": [-1, -0.1, -7.5],
+              "size": [2, 14.2, 15],
+              "inflate": 0.15,
+              "uv": [0, 46]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
