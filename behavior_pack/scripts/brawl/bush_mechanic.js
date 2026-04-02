@@ -13,6 +13,7 @@
 // NO requiere registro de posiciones. Detecta dinámicamente.
 //
 import { world, system } from "@minecraft/server";
+import { getLobbyPlayers, getDeadPlayers, getState as getGameState, GameState } from "./game_manager.js";
 
 // ═══════════════════════════════════════════
 // CONFIGURACIÓN
@@ -104,8 +105,21 @@ world.afterEvents.entityHitBlock.subscribe((ev) => {
 
 system.runInterval(() => {
   const currentTick = system.currentTick;
+  const st = getGameState();
+  const inMatch = st === GameState.PLAYING;
 
   for (const player of world.getAllPlayers()) {
+    // Solo jugadores activos en partida
+    if (!inMatch || !getLobbyPlayers().has(player.name) || getDeadPlayers().has(player.name)) {
+      // Si tenía estado de bush, limpiarlo
+      const oldState = playerBushState.get(player.name);
+      if (oldState && oldState.wasInvisible) {
+        try { player.removeEffect("invisibility"); } catch {}
+        oldState.wasInvisible = false;
+        oldState.inBush = false;
+      }
+      continue;
+    }
     const state = getState(player.name);
     const inBush = isInBush(player);
     const ticksSinceAttack = currentTick - state.lastAttackTick;

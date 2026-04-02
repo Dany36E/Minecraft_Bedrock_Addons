@@ -265,6 +265,24 @@ function setupPlayer(player) {
   try { player.runCommand("give @s stone_sword 1"); } catch {}
   // Devolver Brawl Master al jugador (se pierde con clear)
   try { player.runCommand("give @s miaddon:brawl_master 1"); } catch {}
+  // Armadura de equipo en Brawl Ball (#8)
+  if (mode === GameMode.BRAWL_BALL) {
+    applyTeamArmor(player);
+  }
+}
+
+/**
+ * Aplica armadura visual según equipo (azul = diamante, rojo = chainmail).
+ */
+function applyTeamArmor(player) {
+  if (mode !== GameMode.BRAWL_BALL) return;
+  const isBlue = teams.blue.has(player.name);
+  // Azul = armadura de diamante, Rojo = armadura de oro (visual diferenciador)
+  const mat = isBlue ? "diamond" : "golden";
+  try {
+    player.runCommand(`replaceitem entity @s slot.armor.head 0 ${mat}_helmet 1`);
+    player.runCommand(`replaceitem entity @s slot.armor.chest 0 ${mat}_chestplate 1`);
+  } catch {}
 }
 
 function teleportPlayersToSpawns() {
@@ -404,15 +422,61 @@ export function reportGoal(scoringTeam) {
     endMatch(scoringTeam);
   } else {
     currentRound++;
-    // Teleportar jugadores a spawns durante la pausa de ronda
+    // Freeze + teleport + heal entre rondas (mini-countdown)
     system.runTimeout(() => {
       teleportTeamsToSpawns();
       for (const name of lobbyPlayers) {
         const p = world.getAllPlayers().find(pl => pl.name === name);
-        if (p) {
-          try { p.addEffect("resistance", 60, { amplifier: 3, showParticles: false }); } catch {}
-        }
+        if (!p) continue;
+        try {
+          // Curar y re-equipar
+          p.addEffect("instant_health", 1, { amplifier: 20, showParticles: false });
+          p.addEffect("saturation", 100, { amplifier: 20, showParticles: false });
+          // Congelar durante mini-countdown (3s)
+          p.addEffect("slowness", 60, { amplifier: 255, showParticles: false });
+          p.addEffect("mining_fatigue", 60, { amplifier: 255, showParticles: false });
+          p.addEffect("resistance", 80, { amplifier: 255, showParticles: false });
+          // Armadura de equipo al respawnear
+          applyTeamArmor(p);
+          p.playSound("note.pling");
+        } catch {}
       }
+      // Mini-countdown visual: 3, 2, 1, GO
+      for (let s = 3; s >= 1; s--) {
+        const sec = s;
+        system.runTimeout(() => {
+          for (const name of lobbyPlayers) {
+            const p = world.getAllPlayers().find(pl => pl.name === name);
+            if (p) {
+              try {
+                p.onScreenDisplay.setTitle(`§e${sec}`, {
+                  fadeInDuration: 0, stayDuration: 18, fadeOutDuration: 2,
+                  subtitle: `§7Ronda ${currentRound}`,
+                });
+                p.playSound("note.hat");
+              } catch {}
+            }
+          }
+        }, (3 - sec) * 20);
+      }
+      // GO después de 3 segundos
+      system.runTimeout(() => {
+        for (const name of lobbyPlayers) {
+          const p = world.getAllPlayers().find(pl => pl.name === name);
+          if (p) {
+            try {
+              p.removeEffect("slowness");
+              p.removeEffect("mining_fatigue");
+              p.removeEffect("resistance");
+              p.addEffect("resistance", 60, { amplifier: 3, showParticles: false });
+              p.onScreenDisplay.setTitle("§a¡GO!", {
+                fadeInDuration: 0, stayDuration: 15, fadeOutDuration: 5,
+              });
+              p.playSound("random.levelup");
+            } catch {}
+          }
+        }
+      }, 60);
     }, 40);
   }
 }
@@ -434,8 +498,26 @@ export function endMatch(winner) {
   emit("matchEnd", { winner, mode });
   setState(GameState.FINISHED);
 
+  // Avisar antes del auto-reset (#14)
+  system.runTimeout(() => {
+    for (const name of lobbyPlayers) {
+      const p = world.getAllPlayers().find(pl => pl.name === name);
+      if (p) {
+        try { p.sendMessage("§7La partida se reiniciará en §e5 §7segundos..."); } catch {}
+      }
+    }
+  }, 100); // 5s después del fin → aviso
+
   // Auto-reset después de 10 segundos
-  system.runTimeout(() => { resetMatch(); }, 200);
+  system.runTimeout(() => {
+    for (const name of lobbyPlayers) {
+      const p = world.getAllPlayers().find(pl => pl.name === name);
+      if (p) {
+        try { p.sendMessage("§7✦ Partida reiniciada. Usa el §eBrawl Master §7para jugar de nuevo."); } catch {}
+      }
+    }
+    resetMatch();
+  }, 200);
 }
 
 /**
@@ -444,8 +526,28 @@ export function endMatch(winner) {
 export function leaveMatch(playerName) {
   if (state === GameState.IDLE) return false;
 
+  // En Showdown, si estaba vivo, registrar como muerte para placement correcto
+  const wasAlive = alivePlayers.has(playerName);
+  if (state === GameState.PLAYING && mode === GameMode.SHOWDOWN && wasAlive) {
+    alivePlayers.delete(playerName);
+    deadPlayers.add(playerName);
+    deathOrder.push(playerName);
+    const placement = lobbyPlayers.size - (deathOrder.length - 1);
+    // Kill feed: avisar a todos que abandonó
+    for (const name of lobbyPlayers) {
+      if (name === playerName) continue;
+      const o = world.getAllPlayers().find(pl => pl.name === name);
+      if (o) {
+        try {
+          o.sendMessage(`§c☠ §e${playerName} §7abandonó la partida §8[#${placement}]`);
+        } catch {}
+      }
+    }
+  } else {
+    alivePlayers.delete(playerName);
+  }
+
   lobbyPlayers.delete(playerName);
-  alivePlayers.delete(playerName);
   teams.blue.delete(playerName);
   teams.red.delete(playerName);
   deadPlayers.delete(playerName);
@@ -658,6 +760,8 @@ world.afterEvents.playerSpawn.subscribe((ev) => {
         player.addEffect("resistance", 999999, { amplifier: 255, showParticles: false });
         player.addEffect("weakness", 999999, { amplifier: 255, showParticles: false });
         player.addEffect("saturation", 999999, { amplifier: 255, showParticles: false });
+        // Levitación lenta para mantener al espectador arriba
+        player.addEffect("slow_falling", 999999, { amplifier: 3, showParticles: false });
         if (arenaOrigin && arenaSize) {
           player.teleport({
             x: arenaOrigin.x + arenaSize.w / 2,

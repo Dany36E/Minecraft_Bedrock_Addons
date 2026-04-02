@@ -10,8 +10,9 @@ import {
   startCountdown, forceEnd, resetMatch, leaveMatch,
   getLobbyPlayers, getTeams, getScores, getMasterName,
   on, getAlivePlayers, getCurrentRound, setSpawnPositions,
+  getArenaOrigin, getArenaSize, getArenaId, getArenaDim,
 } from "./game_manager.js";
-import { buildArena } from "./arena_builder.js";
+import { buildArena, clearArena } from "./arena_builder.js";
 import { activateArena, spawnPowerBoxes, deactivateArena } from "./box_mechanic.js";
 import { showdownArena } from "../structures/showdown_arena.js";
 import { brawlBallArena } from "../structures/brawl_ball_arena.js";
@@ -21,9 +22,31 @@ const ARENAS = {
   brawl_ball_arena: brawlBallArena,
 };
 
-// Limpiar arena cuando termine la partida
+// Guardar datos de la última arena para reutilizar (#10)
+let lastArenaData = null;  // { arenaKey, origin, dimension, size }
+
+// Limpiar arena cuando termine la partida (#9)
 on("stateChange", ({ newState }) => {
-  if (newState === GameState.FINISHED || newState === GameState.IDLE) {
+  if (newState === GameState.FINISHED) {
+    deactivateArena();
+    // Limpiar los bloques de la arena
+    const origin = getArenaOrigin();
+    const size = getArenaSize();
+    const dim = getArenaDim();
+    if (origin && size && dim) {
+      // Guardar para "Jugar de nuevo"
+      lastArenaData = {
+        arenaKey: getArenaId(),
+        origin: { ...origin },
+        dimension: dim,
+        size: { ...size },
+      };
+      system.runTimeout(() => {
+        clearArena(dim, origin, size);
+      }, 220); // Después del auto-reset (200 ticks)
+    }
+  }
+  if (newState === GameState.IDLE) {
     deactivateArena();
   }
 });
@@ -54,6 +77,10 @@ async function openMainMenu(player) {
   if (st === GameState.IDLE) {
     form.button("§l🏟 Crear Partida\n§r§8Elige modo y mapa");
     actions.push(() => openModeSelect(player));
+    if (lastArenaData) {
+      form.button("§l🔁 Jugar de Nuevo\n§r§8Reconstruir última arena");
+      actions.push(() => rebuildLastArena(player));
+    }
     form.button("§l⚙ Configuración\n§r§8Timer, gas, rondas");
     actions.push(() => openSettings(player));
   } else if (st === GameState.LOBBY) {
@@ -198,6 +225,85 @@ async function openModeSelect(player) {
   });
 }
 
+/**
+ * Reconstruir la última arena y crear partida rápida (#10).
+ */
+async function rebuildLastArena(player) {
+  if (!lastArenaData) {
+    player.sendMessage("§c✦ No hay arena previa para reconstruir.");
+    return;
+  }
+
+  const { arenaKey, origin, dimension, size } = lastArenaData;
+  const arena = ARENAS[arenaKey];
+  if (!arena) {
+    player.sendMessage("§c✦ Arena no encontrada.");
+    return;
+  }
+
+  const selectedMode = arenaKey === "showdown_arena" ? GameMode.SHOWDOWN : GameMode.BRAWL_BALL;
+  const modeName = selectedMode === GameMode.SHOWDOWN ? "Supervivencia" : "Balón Brawl";
+
+  const confirm = new ActionFormData()
+    .title(`§l🔁 Jugar de Nuevo`)
+    .body(`§7Reconstruir §e${arena.name}§7 (${modeName}) en la misma ubicación.\n\n§7Bloques: §e~${arena.blocks.length}`)
+    .button("§a✔ Construir y crear partida")
+    .button("§c✖ Cancelar");
+
+  const cRes = await confirm.show(player);
+  if (cRes.canceled || cRes.selection === 1) return;
+
+  player.sendMessage("§6★ Reconstruyendo arena...");
+
+  buildArena({
+    dimension,
+    origin,
+    blocks: arena.blocks,
+    onProgress: (placed, total) => {
+      if (placed % 2000 === 0) {
+        player.sendMessage(`§7  Colocando bloques: ${placed}/${total}`);
+      }
+    },
+    onComplete: () => {
+      player.sendMessage("§a✔ Arena reconstruida.");
+
+      const created = createMatch({
+        mode: selectedMode,
+        arenaId: arenaKey,
+        origin,
+        dimension,
+        size,
+        master: player.name,
+      });
+
+      if (!created) {
+        player.sendMessage("§cError al crear la partida.");
+        return;
+      }
+
+      if (arena.meta?.spawnPositions) {
+        setSpawnPositions(arena.meta.spawnPositions);
+      }
+
+      joinLobby(player.name);
+      activateArena();
+
+      if (arenaKey === "showdown_arena" && arena.meta?.boxPositions) {
+        const worldPositions = arena.meta.boxPositions.map(([rx, ry, rz]) => ({
+          x: origin.x + rx,
+          y: origin.y + ry,
+          z: origin.z + rz,
+        }));
+        system.runTimeout(() => {
+          spawnPowerBoxes(dimension, worldPositions);
+        }, 10);
+      }
+
+      player.sendMessage("§6★ Partida creada. Usa el §eBrawl Master §6para abrir el lobby.");
+    },
+  });
+}
+
 // ═══════════════════════════════════════════
 // LOBBY
 // ═══════════════════════════════════════════
@@ -277,15 +383,17 @@ async function openJoinMenu(player) {
 
   if (res.selection === available.length) {
     // Unir a todos
+    const modeName = getMode() === GameMode.SHOWDOWN ? "Supervivencia" : "Balón Brawl";
     for (const p of available) {
       joinLobby(p.name);
-      p.sendMessage(`§6★ Has sido invitado a una partida de Brawl Stars por §e${player.name}§6.`);
+      p.sendMessage(`§6★ Has sido invitado a §e${modeName} §6por §e${player.name}§6.`);
     }
     player.sendMessage(`§a✔ ${available.length} jugadores añadidos al lobby.`);
   } else if (res.selection < available.length) {
     const target = available[res.selection];
+    const modeName = getMode() === GameMode.SHOWDOWN ? "Supervivencia" : "Balón Brawl";
     joinLobby(target.name);
-    target.sendMessage(`§6★ Has sido invitado a una partida de Brawl Stars por §e${player.name}§6.`);
+    target.sendMessage(`§6★ Has sido invitado a §e${modeName} §6por §e${player.name}§6.`);
     player.sendMessage(`§a✔ ${target.name} añadido al lobby.`);
   }
 }

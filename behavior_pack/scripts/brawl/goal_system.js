@@ -167,16 +167,17 @@ system.runInterval(() => {
     const rx = ballLoc.x - origin.x;
     const rz = ballLoc.z - origin.z;
 
-    // Gol de pelota libre (pateada hacia la portería)
-    if (lastKickerTeam === "blue" &&
-        rx >= RED_GOAL.x1 && rx <= RED_GOAL.x2 &&
+    // Gol de pelota libre: si pelota entra en una portería, anota el equipo contrario
+    // Funciona tanto para goles normales como autogoles
+    if (rx >= RED_GOAL.x1 && rx <= RED_GOAL.x2 &&
         rz >= RED_GOAL.z1 && rz <= RED_GOAL.z2) {
+      // Pelota en portería roja → punto para azul
       scoreGoal("blue", lastKicker);
       return;
     }
-    if (lastKickerTeam === "red" &&
-        rx >= BLUE_GOAL.x1 && rx <= BLUE_GOAL.x2 &&
+    if (rx >= BLUE_GOAL.x1 && rx <= BLUE_GOAL.x2 &&
         rz >= BLUE_GOAL.z1 && rz <= BLUE_GOAL.z2) {
+      // Pelota en portería azul → punto para rojo
       scoreGoal("red", lastKicker);
       return;
     }
