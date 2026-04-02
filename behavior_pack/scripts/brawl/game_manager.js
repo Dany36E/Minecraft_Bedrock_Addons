@@ -50,6 +50,21 @@ let countdownTicksLeft = 0;
 // Callbacks
 const listeners = new Map();  // event -> [callbacks]
 
+// ─── Hub persistente ───
+let hubOrigin = null;    // {x, y, z}
+let hubDimId = null;     // "overworld" | "nether" | "the_end"
+let hubSpawnPos = null;  // {x, y, z} — punto de retorno tras partida
+
+try {
+  const saved = world.getDynamicProperty("brawl:hub");
+  if (saved) {
+    const data = JSON.parse(saved);
+    hubOrigin = data.origin || null;
+    hubDimId = data.dimId || null;
+    hubSpawnPos = data.spawn || null;
+  }
+} catch {}
+
 // ═══════════════════════════════════════════
 // CONFIG (modificable vía UI)
 // ═══════════════════════════════════════════
@@ -519,7 +534,22 @@ export function endMatch(winner) {
     resetMatch();
   }, 200);
 
-  pendingEndTimers = [t1, t2];
+  // Teleportar al hub antes del reset (si existe)
+  const t3 = system.runTimeout(() => {
+    if (hubSpawnPos && hubDimId) {
+      try {
+        const hubDim = world.getDimension(hubDimId);
+        for (const name of lobbyPlayers) {
+          const p = world.getAllPlayers().find(pl => pl.name === name);
+          if (p) {
+            try { p.teleport(hubSpawnPos, { dimension: hubDim }); } catch {}
+          }
+        }
+      } catch {}
+    }
+  }, 160);
+
+  pendingEndTimers = [t1, t2, t3];
 }
 
 /**
@@ -609,6 +639,36 @@ export function resetMatch() {
  */
 export function forceEnd() {
   endMatch(null);
+}
+
+// ═══════════════════════════════════════════
+// HUB — Persistencia con Dynamic Properties
+// ═══════════════════════════════════════════
+
+export function getHubOrigin() { return hubOrigin; }
+export function getHubDimId() { return hubDimId; }
+export function getHubDimension() {
+  if (!hubDimId) return null;
+  try { return world.getDimension(hubDimId); } catch { return null; }
+}
+export function getHubSpawnPos() { return hubSpawnPos; }
+
+export function setHubData(origin, dimId, spawnPos) {
+  hubOrigin = origin;
+  hubDimId = dimId;
+  hubSpawnPos = spawnPos;
+  try {
+    world.setDynamicProperty("brawl:hub", JSON.stringify({
+      origin, dimId, spawn: spawnPos,
+    }));
+  } catch {}
+}
+
+export function clearHubData() {
+  hubOrigin = null;
+  hubDimId = null;
+  hubSpawnPos = null;
+  try { world.setDynamicProperty("brawl:hub", undefined); } catch {}
 }
 
 /**

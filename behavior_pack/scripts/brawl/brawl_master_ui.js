@@ -12,11 +12,13 @@ import {
   on, getAlivePlayers, getCurrentRound, setSpawnPositions,
   getArenaOrigin, getArenaSize, getArenaId, getArenaDim,
   resetForRematch,
+  getHubOrigin, getHubDimension, setHubData, clearHubData,
 } from "./game_manager.js";
 import { buildArena, clearArena } from "./arena_builder.js";
 import { activateArena, spawnPowerBoxes, deactivateArena } from "./box_mechanic.js";
 import { showdownArena } from "../structures/showdown_arena.js";
 import { brawlBallArena } from "../structures/brawl_ball_arena.js";
+import { hubStructure } from "../structures/hub_structure.js";
 
 const ARENAS = {
   showdown_arena: showdownArena,
@@ -31,7 +33,6 @@ let pendingClearTimer = null;
 on("stateChange", ({ newState }) => {
   if (newState === GameState.FINISHED) {
     deactivateArena();
-    // Limpiar los bloques de la arena
     const origin = getArenaOrigin();
     const size = getArenaSize();
     const dim = getArenaDim();
@@ -43,10 +44,14 @@ on("stateChange", ({ newState }) => {
         dimension: dim,
         size: { ...size },
       };
-      pendingClearTimer = system.runTimeout(() => {
-        clearArena(dim, origin, size);
-        pendingClearTimer = null;
-      }, 220); // Después del auto-reset (200 ticks)
+      // Solo auto-limpiar arena si NO hay hub
+      // (con hub, la arena se reconstruye al iniciar la próxima partida)
+      if (!getHubOrigin()) {
+        pendingClearTimer = system.runTimeout(() => {
+          clearArena(dim, origin, size);
+          pendingClearTimer = null;
+        }, 220);
+      }
     }
   }
   if (newState === GameState.LOBBY) {
@@ -85,14 +90,30 @@ async function openMainMenu(player) {
   const actions = [];
 
   if (st === GameState.IDLE) {
-    form.button("§l🏟 Crear Partida\n§r§8Elige modo y mapa");
-    actions.push(() => openModeSelect(player));
-    if (lastArenaData) {
-      form.button("§l🔁 Jugar de Nuevo\n§r§8Reconstruir última arena");
-      actions.push(() => rebuildLastArena(player));
+    const hub = getHubOrigin();
+    if (hub) {
+      // ─── Hub existe: selección directa de modo ───
+      form.button("§l💀 Supervivencia\n§r§8Último en pie gana");
+      actions.push(() => startArenaFromHub(player, "showdown_arena"));
+      form.button("§l⚽ Balón Brawl\n§r§83v3 · Mete goles para ganar");
+      actions.push(() => startArenaFromHub(player, "brawl_ball_arena"));
+      form.button("§l⚙ Configuración\n§r§8Timer, gas, rondas");
+      actions.push(() => openSettings(player));
+      form.button("§l🗑 Destruir Hub\n§r§8Eliminar hub y arenas");
+      actions.push(() => destroyHub(player));
+    } else {
+      // ─── Sin hub: ofrecer construir ───
+      form.button("§l🏗 Construir Hub\n§r§8Crear plataforma central");
+      actions.push(() => buildHub(player));
+      form.button("§l🏟 Crear Partida\n§r§8Sin hub (temporal)");
+      actions.push(() => openModeSelect(player));
+      if (lastArenaData) {
+        form.button("§l🔁 Jugar de Nuevo\n§r§8Reconstruir última arena");
+        actions.push(() => rebuildLastArena(player));
+      }
+      form.button("§l⚙ Configuración\n§r§8Timer, gas, rondas");
+      actions.push(() => openSettings(player));
     }
-    form.button("§l⚙ Configuración\n§r§8Timer, gas, rondas");
-    actions.push(() => openSettings(player));
   } else if (st === GameState.LOBBY) {
     form.button("§l👥 Ver Lobby\n§r§8Jugadores y equipos");
     actions.push(() => openLobbyView(player));
@@ -239,6 +260,200 @@ async function openModeSelect(player) {
       player.sendMessage("§7Los demás jugadores pueden unirse usando el Brawl Master.");
     },
   });
+}
+
+/**
+ * Construir el Hub central en la posición del jugador.
+ */
+async function buildHub(player) {
+  const confirm = new ActionFormData()
+    .title("§l🏗 Construir Hub")
+    .body(
+      "§7Se construirá el §eBrawl Hub§7 en tu posición.\n\n" +
+      "§7Incluye:\n" +
+      "§e• §7Plataforma central de lobby\n" +
+      "§e• §7Pedestales indicadores hacia cada arena\n" +
+      "§e• §7Punto de regreso automático tras cada partida\n\n" +
+      `§7Bloques: §e~${hubStructure.blocks.length}\n` +
+      "§7Las arenas se construirán a los lados del hub."
+    )
+    .button("§a✔ Construir aquí")
+    .button("§c✖ Cancelar");
+
+  const cRes = await confirm.show(player);
+  if (cRes.canceled || cRes.selection === 1) return;
+
+  const loc = player.location;
+  const origin = {
+    x: Math.floor(loc.x) - 10,  // centrar hub sobre el jugador
+    y: Math.floor(loc.y),
+    z: Math.floor(loc.z) - 6,
+  };
+  const sp = hubStructure.meta.spawnPoint;
+  const spawnPos = {
+    x: origin.x + sp.rx,
+    y: origin.y + sp.ry,
+    z: origin.z + sp.rz,
+  };
+
+  player.sendMessage("§6★ Construyendo Hub...");
+
+  buildArena({
+    dimension: player.dimension,
+    origin,
+    blocks: hubStructure.blocks,
+    onComplete: () => {
+      setHubData(origin, player.dimension.id, spawnPos);
+      player.sendMessage("§a✔ Hub construido. ¡Usa el §eBrawl Master §apara elegir modo!");
+
+      try {
+        player.teleport(spawnPos);
+        player.playSound("random.levelup");
+      } catch {}
+    },
+  });
+}
+
+/**
+ * Iniciar partida desde el Hub: construye arena en posición fija.
+ */
+async function startArenaFromHub(player, arenaKey) {
+  const hub = getHubOrigin();
+  const hubDim = getHubDimension();
+  if (!hub || !hubDim) {
+    player.sendMessage("§c✦ Hub no encontrado.");
+    return;
+  }
+
+  const arena = ARENAS[arenaKey];
+  if (!arena) return;
+
+  const offset = hubStructure.meta.arenaOffsets[arenaKey];
+  const origin = {
+    x: hub.x + offset.rx,
+    y: hub.y + offset.ry,
+    z: hub.z + offset.rz,
+  };
+
+  const selectedMode = arenaKey === "showdown_arena" ? GameMode.SHOWDOWN : GameMode.BRAWL_BALL;
+  const modeName = selectedMode === GameMode.SHOWDOWN ? "Supervivencia" : "Balón Brawl";
+  const icon = selectedMode === GameMode.SHOWDOWN ? "💀" : "⚽";
+
+  const confirm = new ActionFormData()
+    .title(`§l${icon} ${modeName}`)
+    .body(
+      `§7Construir §e${arena.name}§7 en posición fija.\n\n` +
+      `§7Bloques: §e~${arena.blocks.length}\n` +
+      `§7Dirección: §e${arenaKey === "showdown_arena" ? "Oeste del Hub" : "Este del Hub"}`
+    )
+    .button("§a✔ Construir y crear partida")
+    .button("§c✖ Cancelar");
+
+  const cRes = await confirm.show(player);
+  if (cRes.canceled || cRes.selection === 1) return;
+
+  const arenaSize = arena.size || {
+    w: arenaKey === "showdown_arena" ? 45 : 27,
+    h: 6,
+    l: 45,
+  };
+
+  player.sendMessage("§6★ Construyendo arena...");
+
+  buildArena({
+    dimension: hubDim,
+    origin,
+    blocks: arena.blocks,
+    onProgress: (placed, total) => {
+      if (placed % 2000 === 0) {
+        player.sendMessage(`§7  Colocando bloques: ${placed}/${total}`);
+      }
+    },
+    onComplete: () => {
+      player.sendMessage("§a✔ Arena construida.");
+
+      const created = createMatch({
+        mode: selectedMode,
+        arenaId: arenaKey,
+        origin,
+        dimension: hubDim,
+        size: arenaSize,
+        master: player.name,
+      });
+
+      if (!created) {
+        player.sendMessage("§cError al crear la partida.");
+        return;
+      }
+
+      if (arena.meta?.spawnPositions) {
+        setSpawnPositions(arena.meta.spawnPositions);
+      }
+
+      joinLobby(player.name);
+      activateArena();
+
+      if (arenaKey === "showdown_arena" && arena.meta?.boxPositions) {
+        const worldPositions = arena.meta.boxPositions.map(([rx, ry, rz]) => ({
+          x: origin.x + rx,
+          y: origin.y + ry,
+          z: origin.z + rz,
+        }));
+        system.runTimeout(() => {
+          spawnPowerBoxes(hubDim, worldPositions);
+        }, 10);
+      }
+
+      player.sendMessage("§6★ Partida creada. Usa el §eBrawl Master §6para abrir el lobby.");
+    },
+  });
+}
+
+/**
+ * Destruir el Hub y limpiar todas las arenas.
+ */
+async function destroyHub(player) {
+  if (getState() !== GameState.IDLE) {
+    player.sendMessage("§c✦ No se puede destruir el hub durante una partida.");
+    return;
+  }
+
+  const confirm = new ActionFormData()
+    .title("§l🗑 Destruir Hub")
+    .body("§c¿Estás seguro?\n\n§7Se eliminará:\n§c• §7El Hub central\n§c• §7Ambas arenas (si existen)\n\n§cEsta acción no se puede deshacer.")
+    .button("§c✔ Destruir todo")
+    .button("§a✖ Cancelar");
+
+  const cRes = await confirm.show(player);
+  if (cRes.canceled || cRes.selection === 1) return;
+
+  const hub = getHubOrigin();
+  const dim = getHubDimension();
+
+  if (hub && dim) {
+    player.sendMessage("§c✦ Destruyendo hub y arenas...");
+
+    // Limpiar hub
+    clearArena(dim, hub, hubStructure.size);
+
+    // Limpiar ambas posiciones de arena
+    for (const [key, arena] of Object.entries(ARENAS)) {
+      const offset = hubStructure.meta.arenaOffsets[key];
+      if (offset) {
+        const aSize = arena.size || {
+          w: key === "showdown_arena" ? 45 : 27, h: 6, l: 45,
+        };
+        clearArena(dim, {
+          x: hub.x + offset.rx,
+          y: hub.y + offset.ry,
+          z: hub.z + offset.rz,
+        }, aSize);
+      }
+    }
+  }
+
+  clearHubData();
+  player.sendMessage("§c✦ Hub y arenas destruidos.");
 }
 
 /**
