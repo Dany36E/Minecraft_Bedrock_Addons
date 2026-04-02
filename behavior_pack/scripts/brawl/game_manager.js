@@ -499,7 +499,7 @@ export function endMatch(winner) {
   setState(GameState.FINISHED);
 
   // Avisar antes del auto-reset (#14)
-  system.runTimeout(() => {
+  const t1 = system.runTimeout(() => {
     for (const name of lobbyPlayers) {
       const p = world.getAllPlayers().find(pl => pl.name === name);
       if (p) {
@@ -509,7 +509,7 @@ export function endMatch(winner) {
   }, 100); // 5s después del fin → aviso
 
   // Auto-reset después de 10 segundos
-  system.runTimeout(() => {
+  const t2 = system.runTimeout(() => {
     for (const name of lobbyPlayers) {
       const p = world.getAllPlayers().find(pl => pl.name === name);
       if (p) {
@@ -518,6 +518,8 @@ export function endMatch(winner) {
     }
     resetMatch();
   }, 200);
+
+  pendingEndTimers = [t1, t2];
 }
 
 /**
@@ -607,6 +609,50 @@ export function resetMatch() {
  */
 export function forceEnd() {
   endMatch(null);
+}
+
+/**
+ * Reiniciar mapa: resetea partida pero conserva arena, modo, master y lobby.
+ * Reconstruye la arena sin destruirla/crearla desde cero.
+ */
+let pendingEndTimers = [];
+
+export function resetForRematch() {
+  if (state === GameState.IDLE) return;
+
+  // Cancelar timers pendientes de endMatch
+  for (const t of pendingEndTimers) {
+    try { system.clearRun(t); } catch {}
+  }
+  pendingEndTimers = [];
+
+  // Guardar datos que necesitamos conservar
+  const saved = {
+    origin: arenaOrigin, dim: arenaDim, size: arenaSize,
+    id: arenaId, gameMode: mode, master: masterName,
+    spawns: spawnPositions, players: new Set(lobbyPlayers),
+  };
+
+  // Limpiar efectos de todos los jugadores
+  for (const name of lobbyPlayers) {
+    const p = world.getAllPlayers().find(pl => pl.name === name);
+    if (p) try { p.runCommand("effect @s clear"); } catch {}
+  }
+
+  // Reset completo → IDLE (limpia todos los subsistemas)
+  resetMatch();
+
+  // Restaurar arena, modo y jugadores
+  arenaOrigin = saved.origin;
+  arenaDim = saved.dim;
+  arenaSize = saved.size;
+  arenaId = saved.id;
+  mode = saved.gameMode;
+  masterName = saved.master;
+  spawnPositions = saved.spawns;
+  for (const name of saved.players) lobbyPlayers.add(name);
+
+  setState(GameState.LOBBY);
 }
 
 function setState(newState) {

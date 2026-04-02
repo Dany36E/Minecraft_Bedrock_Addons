@@ -11,6 +11,7 @@ import {
   getLobbyPlayers, getTeams, getScores, getMasterName,
   on, getAlivePlayers, getCurrentRound, setSpawnPositions,
   getArenaOrigin, getArenaSize, getArenaId, getArenaDim,
+  resetForRematch,
 } from "./game_manager.js";
 import { buildArena, clearArena } from "./arena_builder.js";
 import { activateArena, spawnPowerBoxes, deactivateArena } from "./box_mechanic.js";
@@ -24,6 +25,7 @@ const ARENAS = {
 
 // Guardar datos de la última arena para reutilizar (#10)
 let lastArenaData = null;  // { arenaKey, origin, dimension, size }
+let pendingClearTimer = null;
 
 // Limpiar arena cuando termine la partida (#9)
 on("stateChange", ({ newState }) => {
@@ -41,9 +43,17 @@ on("stateChange", ({ newState }) => {
         dimension: dim,
         size: { ...size },
       };
-      system.runTimeout(() => {
+      pendingClearTimer = system.runTimeout(() => {
         clearArena(dim, origin, size);
+        pendingClearTimer = null;
       }, 220); // Después del auto-reset (200 ticks)
+    }
+  }
+  if (newState === GameState.LOBBY) {
+    // Cancelar limpieza pendiente de arena (Reiniciar Mapa)
+    if (pendingClearTimer !== null) {
+      system.clearRun(pendingClearTimer);
+      pendingClearTimer = null;
     }
   }
   if (newState === GameState.IDLE) {
@@ -104,6 +114,8 @@ async function openMainMenu(player) {
     form.button("§l📊 Estado\n§r§8Ver info de la partida");
     actions.push(() => showMatchStatus(player));
     if (player.name === getMasterName()) {
+      form.button("§l🔄 Reiniciar Mapa\n§r§8Reconstruir y volver al lobby");
+      actions.push(() => handleRematch(player));
       form.button("§l⏹ Terminar Partida\n§r§8Forzar final");
       actions.push(() => { forceEnd(); player.sendMessage("§c✦ Partida terminada."); });
     }
@@ -114,6 +126,10 @@ async function openMainMenu(player) {
   } else if (st === GameState.FINISHED) {
     form.button("§l📊 Resultados\n§r§8Ver resultados");
     actions.push(() => showMatchStatus(player));
+    if (player.name === getMasterName()) {
+      form.button("§l🔄 Reiniciar Mapa\n§r§8Reconstruir y jugar de nuevo");
+      actions.push(() => handleRematch(player));
+    }
   }
 
   const res = await form.show(player);
@@ -221,6 +237,80 @@ async function openModeSelect(player) {
 
       player.sendMessage("§6★ Partida creada. Usa el §eBrawl Master §6para abrir el lobby.");
       player.sendMessage("§7Los demás jugadores pueden unirse usando el Brawl Master.");
+    },
+  });
+}
+
+/**
+ * Reiniciar Mapa: resetea partida, reconstruye arena, vuelve al lobby.
+ */
+async function handleRematch(player) {
+  const arenaKey = getArenaId();
+  const origin = getArenaOrigin();
+  const dim = getArenaDim();
+  const size = getArenaSize();
+
+  if (!arenaKey || !origin || !dim) {
+    player.sendMessage("§c✦ No hay arena activa para reiniciar.");
+    return;
+  }
+
+  const arena = ARENAS[arenaKey];
+  if (!arena) {
+    player.sendMessage("§c✦ Definición de arena no encontrada.");
+    return;
+  }
+
+  const modeName = getMode() === GameMode.SHOWDOWN ? "Supervivencia" : "Balón Brawl";
+
+  const confirm = new ActionFormData()
+    .title("§l🔄 Reiniciar Mapa")
+    .body(`§7Reconstruir §e${arena.name}§7 (${modeName}).\n\n§7Se reiniciarán:\n§e• §7Bloques del mapa\n§e• §7Power Cubes\n§e• §7Puntuaciones\n§e• §7Todos vuelven al lobby`)
+    .button("§a✔ Reiniciar")
+    .button("§c✖ Cancelar");
+
+  const cRes = await confirm.show(player);
+  if (cRes.canceled || cRes.selection === 1) return;
+
+  // Resetear partida conservando arena + lobby
+  resetForRematch();
+
+  player.sendMessage("§6★ Reconstruyendo mapa...");
+
+  // Reconstruir arena
+  buildArena({
+    dimension: dim,
+    origin,
+    blocks: arena.blocks,
+    onProgress: (placed, total) => {
+      if (placed % 2000 === 0) {
+        player.sendMessage(`§7  Colocando bloques: ${placed}/${total}`);
+      }
+    },
+    onComplete: () => {
+      player.sendMessage("§a✔ Mapa reiniciado. ¡Listo para jugar!");
+
+      activateArena();
+
+      // Respawnear power boxes si es Showdown
+      if (arenaKey === "showdown_arena" && arena.meta?.boxPositions) {
+        const worldPositions = arena.meta.boxPositions.map(([rx, ry, rz]) => ({
+          x: origin.x + rx,
+          y: origin.y + ry,
+          z: origin.z + rz,
+        }));
+        system.runTimeout(() => {
+          spawnPowerBoxes(dim, worldPositions);
+        }, 10);
+      }
+
+      // Avisar a todos los del lobby
+      for (const name of getLobbyPlayers()) {
+        const p = world.getAllPlayers().find(pl => pl.name === name);
+        if (p && p.name !== player.name) {
+          try { p.sendMessage("§6★ El mapa ha sido reiniciado. ¡Preparados!"); } catch {}
+        }
+      }
     },
   });
 }
