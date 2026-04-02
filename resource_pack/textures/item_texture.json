@@ -40,6 +40,9 @@
     },
     "miaddon:power_box_spawner": {
       "textures": "textures/items/power_box_spawner"
+    },
+    "miaddon:brawl_master": {
+      "textures": "textures/items/brawl_master"
     }
   }
 }

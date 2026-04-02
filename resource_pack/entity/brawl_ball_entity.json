@@ -1,0 +1,22 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "miaddon:brawl_ball",
+      "materials": { "default": "entity_alphatest" },
+      "textures": { "default": "textures/entity/brawl_ball" },
+      "geometry": { "default": "geometry.miaddon.brawl_ball" },
+      "animations": {
+        "bob": "animation.power_cube.bob"
+      },
+      "scripts": {
+        "animate": ["bob"]
+      },
+      "render_controllers": ["controller.render.biblical_default"],
+      "spawn_egg": {
+        "base_color": "#FFFFFF",
+        "overlay_color": "#333333"
+      }
+    }
+  }
+}

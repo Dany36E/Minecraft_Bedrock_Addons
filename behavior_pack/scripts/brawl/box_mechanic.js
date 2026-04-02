@@ -278,25 +278,6 @@ system.runInterval(() => {
 }, PICKUP_CHECK_INTERVAL);
 
 // ═══════════════════════════════════════════
-// HUD: Mostrar cubos actuales periódicamente
-// ═══════════════════════════════════════════
-
-system.runInterval(() => {
-  if (!arenaActive) return;
-
-  for (const player of world.getAllPlayers()) {
-    const cubes = playerCubes.get(player.name) || 0;
-    try {
-      if (cubes > 0) {
-        player.onScreenDisplay.setActionBar(`§6⚡ Power Cubes: §e${cubes}`);
-      } else {
-        player.onScreenDisplay.setActionBar(`§7⚡ Power Cubes: 0`);
-      }
-    } catch {}
-  }
-}, 40);
-
-// ═══════════════════════════════════════════
 // ITEM: Colocar Power Box manualmente
 // ═══════════════════════════════════════════
 

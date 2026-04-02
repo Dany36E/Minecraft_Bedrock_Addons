@@ -1,0 +1,30 @@
+{
+  "format_version": "1.21.10",
+  "minecraft:item": {
+    "description": {
+      "identifier": "miaddon:brawl_master",
+      "menu_category": {
+        "category": "items",
+        "group": "itemGroup.name.miscellaneous"
+      }
+    },
+    "components": {
+      "minecraft:max_stack_size": 1,
+      "minecraft:icon": "miaddon:brawl_master",
+      "minecraft:display_name": {
+        "value": "item.miaddon:brawl_master.name"
+      },
+      "minecraft:hand_equipped": true,
+      "minecraft:glint": true,
+      "minecraft:food": {
+        "nutrition": 0,
+        "saturation_modifier": 0,
+        "can_always_eat": true
+      },
+      "minecraft:use_modifiers": {
+        "use_duration": 72000,
+        "movement_modifier": 1.0
+      }
+    }
+  }
+}

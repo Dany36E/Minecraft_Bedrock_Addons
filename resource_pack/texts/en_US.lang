@@ -34,5 +34,7 @@ entity.miaddon:sling_stone_entity.name=Piedra de Honda
 
 ## Brawl Stars
 item.miaddon:power_box_spawner.name=§eCaja de Poder
+item.miaddon:brawl_master.name=§6★ Brawl Master ★
 entity.miaddon:power_box.name=Caja de Poder
 entity.miaddon:power_cube_drop.name=Power Cube
+entity.miaddon:brawl_ball.name=Balón Brawl

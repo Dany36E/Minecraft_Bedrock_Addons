@@ -4,7 +4,6 @@ import { world, system, EquipmentSlot } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
 import { STRUCTURES } from "./structures/all_structures.js";
 import { onStructureBuilt } from "./quest_system.js";
-import { activateArena, spawnPowerBoxes } from "./brawl/box_mechanic.js";
 
 // ══════════════════════════════════════════
 // Lore bíblico de cada estructura
@@ -100,25 +99,13 @@ const STRUCTURE_LORE = {
     verse: '"Jehová no salva con espada y lanza; porque de Jehová es la batalla." \u2014 1 Samuel 17:47',
     dims: "52×12×44", blocks: "~25,000", time: "~5 min", materials: "Terreno natural, lana, hierro, cobre, madera",
   },
-  brawl_ball_arena: {
-    name: "Arena Balón Brawl", ref: "Brawl Stars",
-    story: "Campo de fútbol 3v3 inspirado en Brawl Ball de Brawl Stars. Dos equipos compiten por meter gol en la portería rival. Incluye paredes destructibles de heno, pilares indestructibles, arbustos para emboscadas y porterías con red.",
-    verse: '"¡Gooool! El primer equipo en anotar 2 goles gana."',
-    dims: "27×6×45", blocks: "~4,500", time: "~50 seg", materials: "Concreto, heno, hojas de roble, cadenas, madera oscura",
-  },
-  showdown_arena: {
-    name: "Arena Supervivencia", ref: "Brawl Stars",
-    story: "Arena de batalla real para 10 jugadores inspirada en Showdown de Brawl Stars. Mapa desértico con canales de agua, corredores de ladrillo, paredes de heno destructibles, arbustos para esconderse y cajas de Power Cubes que otorgan daño y vida extra.",
-    verse: '"¡Recoge Power Cubes y sé el último en pie!"',
-    dims: "45×6×45", blocks: "~11,000", time: "~2 min", materials: "Arenisca, ladrillo, heno, agua, barriles, hojas",
-  },
 };
 
 // ══════════════════════════════════════════
 // Filtros por historia bíblica
 // ══════════════════════════════════════════
 const STORY_FILTERS = {
-  all:       { label: "§l§f✦ Todas las estructuras",   sub: "§e17 construcciones",                 ids: Object.keys(STRUCTURE_LORE) },
+  all:       { label: "§l§f✦ Todas las estructuras",   sub: "§e15 construcciones",                 ids: Object.keys(STRUCTURE_LORE) },
   samson:    { label: "§l§c⚔ Historia de Sansón",       sub: "§ePrisión de Gaza, Templo de Dagón",  ids: ["samson_prison", "dagon_temple"] },
   noah:      { label: "§l§9🌊 Historia de Noé",         sub: "§eEl Arca del diluvio",                ids: ["ark"] },
   moses:     { label: "§l§6☁ Historia de Moisés",       sub: "§eTabernáculo, Altar, Pirámide, Arca del Pacto", ids: ["tabernacle", "altar", "pyramid", "ark_covenant"] },
@@ -126,7 +113,6 @@ const STORY_FILTERS = {
   david:     { label: "§l§e👑 Historia de David",        sub: "§eTorre de David, Valle de Elá",        ids: ["davids_tower", "elah_battlefield"] },
   genesis:   { label: "§l§d🏗 Génesis y orígenes",      sub: "§eTorre de Babel, Cruz",                ids: ["tower_babel", "cross"] },
   buildings: { label: "§l§b🏠 Edificios",               sub: "§eIglesia, Casa, Pozo",                 ids: ["church", "medieval_house", "well"] },
-  arenas:    { label: "§l§c🏟 Arenas de Batalla",      sub: "§eBrawl Ball, Supervivencia",            ids: ["brawl_ball_arena", "showdown_arena"] },
 };
 
 // ══════════════════════════════════════════
@@ -410,26 +396,6 @@ function buildStructure(player, structureId, basePos, rotation) {
       player.sendMessage(`§a✦ ${structure.name} construida exitosamente!${speedTxt}`);
       if (failed > 0) {
         player.sendMessage(`§7  (${placed} bloques colocados, ${failed} fallaron)`);
-      }
-
-      // Activar mecánicas de arena si la estructura tiene meta
-      if (structure.meta) {
-        activateArena();
-
-        // Spawnear cajas de Power Cubes como entidades
-        if (structure.meta.boxPositions && structure.meta.boxPositions.length > 0) {
-          const worldBoxPositions = structure.meta.boxPositions.map(([rx, ry, rz]) => {
-            const [rotX, rotZ] = rotateVector(rx, rz, rotation);
-            return { x: basePos.x + rotX, y: basePos.y + ry, z: basePos.z + rotZ };
-          });
-          // Esperar un momento para que los chunks estén cargados
-          system.runTimeout(() => {
-            spawnPowerBoxes(player.dimension, worldBoxPositions);
-            player.sendMessage(`§6⚡ ${worldBoxPositions.length} cajas de Power Cubes spawneadas.`);
-          }, 10);
-        }
-
-        player.sendMessage("§a🌿 Modo Arena activado — arbustos con invisibilidad.");
       }
 
       try { onStructureBuilt(player); } catch {}
