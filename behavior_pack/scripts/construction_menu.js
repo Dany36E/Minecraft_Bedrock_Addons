@@ -285,6 +285,7 @@ function rotateVector(rx, rz, degrees) {
 
 // ══════════════════════════════════════════
 // Constructor de estructuras (en lotes)
+// Con tickingarea + cola de reintentos
 // ══════════════════════════════════════════
 function buildStructure(player, structureId, basePos, rotation) {
   const structure = STRUCTURES[structureId];
@@ -294,21 +295,49 @@ function buildStructure(player, structureId, basePos, rotation) {
   const total = blocks.length;
   const hasSamson = playerHasSamsonHelmet(player);
   const BATCH = hasSamson ? 150 : 80;
+  const MAX_RETRIES = 3;
+
+  // Calcular bounding box para el tickingarea
+  let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+  for (const block of blocks) {
+    if (!block || block.length < 4) continue;
+    const [rx, ry, rz] = block;
+    const [rotX, rotZ] = rotateVector(rx, rz, rotation);
+    const x = basePos.x + rotX;
+    const y = basePos.y + ry;
+    const z = basePos.z + rotZ;
+    if (x < minX) minX = x; if (x > maxX) maxX = x;
+    if (y < minY) minY = y; if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+  }
+
+  // Agregar tickingarea para mantener chunks cargados durante la construcción
+  const taName = `build_${structureId}_${Date.now()}`;
+  try {
+    player.dimension.runCommand(
+      `tickingarea add ${minX} ${minY} ${minZ} ${maxX} ${maxY} ${maxZ} ${taName}`
+    );
+  } catch { /* puede fallar si ya hay muchas tickingareas */ }
+
   let index = 0;
   let placed = 0;
   let failed = 0;
+  let currentBatch = blocks;   // referencia al array original (no lo mutamos)
+  let currentTotal = total;
+  let retryQueue = [];
+  let retryPass = 0;
 
   const msgs = PROGRESS_MESSAGES[structureId] || ["§7Construyendo...", "§7Progresando...", "§7Casi listo...", "§7¡Completado!"];
-  // Show first message
   player.sendMessage(msgs[0]);
 
   let lastMsgIdx = 0;
 
   const intervalId = system.runInterval(() => {
-    const end = Math.min(index + BATCH, total);
+    const end = Math.min(index + BATCH, currentTotal);
 
     for (let i = index; i < end; i++) {
-      const block = blocks[i];
+      const block = currentBatch[i];
       if (!block || block.length < 4) continue;
 
       const [rx, ry, rz, blockType] = block;
@@ -322,22 +351,38 @@ function buildStructure(player, structureId, basePos, rotation) {
         if (blockObj) {
           blockObj.setType(blockType);
           placed++;
+        } else {
+          retryQueue.push(block);
         }
       } catch {
-        failed++;
+        retryQueue.push(block);
       }
     }
 
     index = end;
 
     // Mensajes temáticos en 25%, 50%, 75%
-    const pct = (index / total) * 100;
+    const pct = ((total - retryQueue.length - (currentTotal - index)) / total) * 100;
     if (pct >= 25 && lastMsgIdx < 1) { lastMsgIdx = 1; player.sendMessage(msgs[1]); }
     if (pct >= 50 && lastMsgIdx < 2) { lastMsgIdx = 2; player.sendMessage(msgs[2]); }
     if (pct >= 75 && lastMsgIdx < 3) { lastMsgIdx = 3; player.sendMessage(msgs[3]); }
 
-    if (index >= total) {
+    if (index >= currentTotal) {
+      // Si hay bloques pendientes, reintentar
+      if (retryQueue.length > 0 && retryPass < MAX_RETRIES) {
+        retryPass++;
+        currentBatch = retryQueue;
+        currentTotal = retryQueue.length;
+        retryQueue = [];
+        index = 0;
+        return;
+      }
+
+      // Construcción terminada — limpiar tickingarea
       system.clearRun(intervalId);
+      try { player.dimension.runCommand(`tickingarea remove ${taName}`); } catch {}
+
+      failed = retryQueue.length;
       const speedTxt = hasSamson ? " §a(×2 velocidad — fuerza de Sansón)" : "";
       player.sendMessage(`§a✦ ${structure.name} construida exitosamente!${speedTxt}`);
       if (failed > 0) {
