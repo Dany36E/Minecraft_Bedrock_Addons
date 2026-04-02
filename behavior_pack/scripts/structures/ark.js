@@ -264,12 +264,16 @@ function generateArk() {
   //   Heno y bebederos en cada corral
   // ════════════════════════════════════════════════════════
 
+  // Zona de exclusión de la puerta (vestíbulo interior)
+  const DOOR_X1 = doorX - 2, DOOR_X2 = doorX + 3; // x=18..23
+  const isDoorZone = (x) => x >= DOOR_X1 && x <= DOOR_X2;
+
   // Divisores laterales del corredor (z=±3)
   for (let x = 5; x < L - 5; x++) {
     if (hw(x) < 5) continue;
     for (let y = 3; y <= 4; y++) {
       b(x, y, -3, FENCE);
-      b(x, y, 3, FENCE);
+      if (!isDoorZone(x)) b(x, y, 3, FENCE);
     }
   }
 
@@ -282,14 +286,16 @@ function generateArk() {
       b(x, 3, z, FENCE);
       b(x, 4, z, FENCE);
     }
-    // Corrales sur
-    for (let z = 4; z < w; z++) {
-      b(x, 3, z, FENCE);
-      b(x, 4, z, FENCE);
+    // Corrales sur (excluir zona de puerta)
+    if (!isDoorZone(x)) {
+      for (let z = 4; z < w; z++) {
+        b(x, 3, z, FENCE);
+        b(x, 4, z, FENCE);
+      }
     }
     // Puertas de corral (hueco)
     b(x, 3, -3, AIR); b(x, 4, -3, AIR);
-    b(x, 3, 3, AIR);  b(x, 4, 3, AIR);
+    if (!isDoorZone(x)) { b(x, 3, 3, AIR); b(x, 4, 3, AIR); }
   }
 
   // Heno en los corrales (forraje)
@@ -297,11 +303,11 @@ function generateArk() {
     const w = hw(x);
     if (w < 5) continue;
     b(x, 3, -(w - 1), HAY);
-    b(x, 3, (w - 1), HAY);
+    if (!isDoorZone(x)) b(x, 3, (w - 1), HAY);
     // Algunos henos apilados
     if (x % 10 === 6) {
       b(x, 4, -(w - 1), HAY);
-      b(x, 4, (w - 1), HAY);
+      if (!isDoorZone(x)) b(x, 4, (w - 1), HAY);
     }
   }
 
@@ -310,7 +316,7 @@ function generateArk() {
     const w = hw(x);
     if (w < 5) continue;
     b(x, 3, -4, CAULDRON);
-    b(x, 3, 4, CAULDRON);
+    if (!isDoorZone(x)) b(x, 3, 4, CAULDRON);
   }
 
   // Estacas separadoras (Hipólito: machos y hembras separados)
@@ -319,7 +325,7 @@ function generateArk() {
     if (w < 6) continue;
     for (let y = 3; y <= 4; y++) {
       b(x + 2, y, -(w - 3), FENCE);
-      b(x + 2, y, (w - 3), FENCE);
+      if (!isDoorZone(x + 2)) b(x + 2, y, (w - 3), FENCE);
     }
   }
 
@@ -327,6 +333,19 @@ function generateArk() {
   for (let x = 6; x < L - 6; x += 8) {
     b(x, 5, 0, LANTERN);
   }
+
+  // ═══ VESTÍBULO DE ENTRADA (Piso 1, zona de la puerta) ═══
+  // Piso diferenciado para marcar la entrada desde dentro
+  for (let x = doorX - 1; x <= doorX + 2; x++) {
+    for (let z = 3; z <= doorW; z++) {
+      b(x, D1, z, BEAM); // piso de spruce log (distinto al planking normal)
+    }
+  }
+  // Linternas flanqueando la entrada
+  b(doorX - 1, 5, doorW - 1, LANTERN);
+  b(doorX + 2, 5, doorW - 1, LANTERN);
+  b(doorX - 1, 5, 4, LANTERN);
+  b(doorX + 2, 5, 4, LANTERN);
 
   // ════════════════════════════════════════════════════════
   // PISO 2 (y=7-9): ANIMALES DOMÉSTICOS Y ALMACÉN

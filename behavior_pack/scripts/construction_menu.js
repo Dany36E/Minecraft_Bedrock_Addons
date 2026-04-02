@@ -65,15 +65,15 @@ const STRUCTURE_LORE = {
   },
   samson_prison: {
     name: "Prisión de Gaza", ref: "Jueces 16:21",
-    story: "Después de que Dalila lo traicionara, los filisteos le sacaron los ojos a Sansón y lo llevaron a Gaza. Allí lo ataron con cadenas de bronce y lo pusieron a moler en la cárcel.",
+    story: "Después de que Dalila lo traicionara, los filisteos le sacaron los ojos a Sansón y lo llevaron a Gaza. Allí lo ataron con cadenas de bronce y lo pusieron a moler en la cárcel. La prisión tiene sala de molienda con molino, patio de guardia y celdas.",
     verse: '"Y le sacaron los ojos, y le llevaron a Gaza, y le ataron con cadenas de bronce, y estuvo moliendo en la cárcel."',
-    dims: "18×6×14", blocks: "~1,500", time: "~25 seg", materials: "Piedra y hierro",
+    dims: "30×11×24", blocks: "~3,500", time: "~40 seg", materials: "Piedra, deepslate, hierro, cobre y cadenas",
   },
   dagon_temple: {
     name: "Templo de Dagón", ref: "Jueces 16:25-30",
-    story: "Los filisteos celebraban en el templo de Dagón cuando trajeron a Sansón para burlarse de él. Sansón pidió fuerzas a Dios una última vez, asió las dos columnas centrales y derrumbó el templo sobre 3,000 filisteos.",
+    story: "Templo filisteo con arquitectura de Tell Qasile: vestíbulo con bancos, gran sala con las DOS COLUMNAS CENTRALES que Sansón derribó, gradas para 3,000 espectadores, y sanctasanctórum con bamah e ídolo de Dagón. Terraza en el techo (Jue 16:27).",
     verse: '"Entonces Sansón asió las dos columnas del medio, sobre las cuales descansaba la casa... y dijo: ¡Muera yo con los filisteos!"',
-    dims: "40×20×25", blocks: "~20,000", time: "~4 min", materials: "Piedra pulida y ladrillos",
+    dims: "46×22×30", blocks: "~28,000", time: "~5 min", materials: "Deepslate pulida, cuarzo, blackstone, nether brick, prismarine",
   },
   jericho_wall: {
     name: "Muralla de Jericó", ref: "Josué 6:1-20",
