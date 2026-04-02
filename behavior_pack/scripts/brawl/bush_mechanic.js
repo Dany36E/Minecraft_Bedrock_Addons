@@ -2,74 +2,27 @@
 // @minecraft/server 1.12.0
 //
 // ══════════════════════════════════════════
-// MECÁNICA DE ARBUSTOS (INVISIBILIDAD)
+// MECÁNICA DE ARBUSTOS (INVISIBILIDAD) — UNIVERSAL
 // ══════════════════════════════════════════
-// • Cuando un jugador está dentro de un arbusto, se vuelve INVISIBLE
-//   para los demás jugadores (efecto minecraft:invisibility)
-// • Si el jugador ATACA (golpea entidad o bloque), se hace VISIBLE
-// • Después de 2 segundos (40 ticks) sin atacar, se vuelve invisible
-//   otra vez SI sigue dentro del arbusto
-// • Al salir del arbusto, pierde la invisibilidad inmediatamente
+// • Funciona en CUALQUIER mapa — detecta bloques oak_leaves en el mundo
+// • Cuando un jugador está parado en/sobre un bloque oak_leaves → INVISIBLE
+// • Si el jugador ATACA → se hace VISIBLE inmediatamente
+// • 2 segundos (40 ticks) sin atacar → vuelve a ser invisible si sigue en arbusto
+// • Al salir del arbusto → pierde invisibilidad
 //
-// Implementación:
-// - Registrar posiciones de arbustos al construir arena
-// - runInterval cada 5 ticks: verificar posición de jugadores
-// - Escuchar eventos de ataque para marcar "última vez que atacó"
-// - Aplicar/remover invisibility según condiciones
+// NO requiere registro de posiciones. Detecta dinámicamente.
 //
 import { world, system } from "@minecraft/server";
 
 // ═══════════════════════════════════════════
-// REGISTRO DE ARBUSTOS
+// CONFIGURACIÓN
 // ═══════════════════════════════════════════
-const registeredBushes = new Set();  // "x,y,z" strings
-const REVEAL_DURATION = 40;          // 2 segundos = 40 ticks
-const CHECK_INTERVAL = 5;            // verificar cada 5 ticks
+const REVEAL_DURATION = 40;    // 2 segundos = 40 ticks
+const CHECK_INTERVAL = 5;      // verificar cada 5 ticks
+const BUSH_BLOCK = "minecraft:oak_leaves";
 
 // Estado por jugador
-const playerBushState = new Map();   // playerName -> { inBush, lastAttackTick, wasInvisible }
-
-/**
- * Registra una posición de arbusto.
- */
-export function registerBush(pos) {
-  const key = `${Math.floor(pos.x)},${Math.floor(pos.y)},${Math.floor(pos.z)}`;
-  registeredBushes.add(key);
-}
-
-/**
- * Limpia todos los arbustos registrados.
- */
-export function clearBushes() {
-  registeredBushes.clear();
-  playerBushState.clear();
-  // Remover invisibilidad de todos
-  for (const player of world.getAllPlayers()) {
-    try { player.removeEffect("invisibility"); } catch {}
-  }
-}
-
-/**
- * Verifica si una posición del mundo contiene un arbusto registrado.
- * Busca la posición exacta del jugador y las adyacentes (pies y bloque en el que está).
- */
-function isInBush(playerLocation) {
-  const px = Math.floor(playerLocation.x);
-  const py = Math.floor(playerLocation.y);
-  const pz = Math.floor(playerLocation.z);
-
-  // Verificar bloque a los pies y bloque debajo
-  const positions = [
-    `${px},${py},${pz}`,
-    `${px},${py - 1},${pz}`,
-    `${px},${py + 1},${pz}`,
-  ];
-
-  for (const key of positions) {
-    if (registeredBushes.has(key)) return true;
-  }
-  return false;
-}
+const playerBushState = new Map();
 
 function getState(playerName) {
   if (!playerBushState.has(playerName)) {
@@ -82,20 +35,44 @@ function getState(playerName) {
   return playerBushState.get(playerName);
 }
 
+/**
+ * Verifica si el jugador está tocando un bloque de arbusto.
+ * Revisa el bloque en los pies, encima y debajo del jugador.
+ */
+function isInBush(player) {
+  const loc = player.location;
+  const dim = player.dimension;
+  const px = Math.floor(loc.x);
+  const py = Math.floor(loc.y);
+  const pz = Math.floor(loc.z);
+
+  // Verificar bloque en los pies, 1 arriba, y 1 abajo
+  const offsets = [
+    { x: px, y: py, z: pz },
+    { x: px, y: py - 1, z: pz },
+    { x: px, y: py + 1, z: pz },
+  ];
+
+  for (const pos of offsets) {
+    try {
+      const block = dim.getBlock(pos);
+      if (block && block.typeId === BUSH_BLOCK) return true;
+    } catch {}
+  }
+  return false;
+}
+
 // ═══════════════════════════════════════════
 // DETECCIÓN DE ATAQUES — Revelar al jugador
 // ═══════════════════════════════════════════
 
-// Ataque a entidades
 world.afterEvents.entityHitEntity.subscribe((ev) => {
-  if (registeredBushes.size === 0) return;
   const attacker = ev.damagingEntity;
   if (attacker.typeId !== "minecraft:player") return;
 
   const state = getState(attacker.name);
   state.lastAttackTick = system.currentTick;
 
-  // Si estaba invisible en arbusto, revelarlo
   if (state.wasInvisible) {
     try {
       attacker.removeEffect("invisibility");
@@ -105,9 +82,7 @@ world.afterEvents.entityHitEntity.subscribe((ev) => {
   }
 });
 
-// Ataque a bloques (romper/golpear)
 world.afterEvents.entityHitBlock.subscribe((ev) => {
-  if (registeredBushes.size === 0) return;
   const attacker = ev.damagingEntity;
   if (attacker.typeId !== "minecraft:player") return;
 
@@ -115,25 +90,22 @@ world.afterEvents.entityHitBlock.subscribe((ev) => {
   state.lastAttackTick = system.currentTick;
 
   if (state.wasInvisible) {
-    try {
-      attacker.removeEffect("invisibility");
-    } catch {}
+    try { attacker.removeEffect("invisibility"); } catch {}
     state.wasInvisible = false;
   }
 });
 
 // ═══════════════════════════════════════════
 // LOOP PRINCIPAL — Verificar posiciones de jugadores
+// Funciona en CUALQUIER mapa, sin registro previo
 // ═══════════════════════════════════════════
 
 system.runInterval(() => {
-  if (registeredBushes.size === 0) return;
-
   const currentTick = system.currentTick;
 
   for (const player of world.getAllPlayers()) {
     const state = getState(player.name);
-    const inBush = isInBush(player.location);
+    const inBush = isInBush(player);
     const ticksSinceAttack = currentTick - state.lastAttackTick;
     const canBeInvisible = ticksSinceAttack >= REVEAL_DURATION;
 
@@ -142,7 +114,6 @@ system.runInterval(() => {
         // Acaba de entrar al arbusto
         state.inBush = true;
         if (canBeInvisible) {
-          // Hacer invisible inmediatamente (sin ataque reciente)
           try {
             player.addEffect("invisibility", 20, { amplifier: 0, showParticles: false });
           } catch {}
@@ -152,14 +123,13 @@ system.runInterval(() => {
       } else {
         // Ya estaba en arbusto
         if (canBeInvisible && !state.wasInvisible) {
-          // Han pasado 2 segundos sin atacar → volver a esconderse
           try {
             player.addEffect("invisibility", 20, { amplifier: 0, showParticles: false });
           } catch {}
           state.wasInvisible = true;
           player.sendMessage("§a§o¡Oculto de nuevo en el arbusto!");
         } else if (state.wasInvisible && canBeInvisible) {
-          // Mantener invisibilidad (refrescar efecto)
+          // Refrescar invisibilidad
           try {
             player.addEffect("invisibility", 20, { amplifier: 0, showParticles: false });
           } catch {}

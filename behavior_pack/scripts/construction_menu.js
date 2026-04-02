@@ -4,8 +4,7 @@ import { world, system, EquipmentSlot } from "@minecraft/server";
 import { ActionFormData } from "@minecraft/server-ui";
 import { STRUCTURES } from "./structures/all_structures.js";
 import { onStructureBuilt } from "./quest_system.js";
-import { registerBox, clearBoxes, clearAllCubes } from "./brawl/box_mechanic.js";
-import { registerBush, clearBushes } from "./brawl/bush_mechanic.js";
+import { activateArena } from "./brawl/box_mechanic.js";
 
 // ══════════════════════════════════════════
 // Lore bíblico de cada estructura
@@ -413,29 +412,10 @@ function buildStructure(player, structureId, basePos, rotation) {
         player.sendMessage(`§7  (${placed} bloques colocados, ${failed} fallaron)`);
       }
 
-      // Registrar mecánicas de arena (cajas y arbustos) si la estructura tiene meta
+      // Activar mecánicas de arena si la estructura tiene meta (cajas con HP)
       if (structure.meta) {
-        if (structure.meta.boxPositions && structure.meta.boxPositions.length > 0) {
-          clearBoxes();
-          clearAllCubes();
-          for (const [rx, ry, rz] of structure.meta.boxPositions) {
-            const [rotX, rotZ] = rotateVector(rx, rz, rotation);
-            registerBox(player.dimension, {
-              x: basePos.x + rotX, y: basePos.y + ry, z: basePos.z + rotZ,
-            });
-          }
-          player.sendMessage(`§6⚡ ${structure.meta.boxPositions.length} cajas de Power Cubes registradas.`);
-        }
-        if (structure.meta.bushPositions && structure.meta.bushPositions.length > 0) {
-          clearBushes();
-          for (const [rx, ry, rz] of structure.meta.bushPositions) {
-            const [rotX, rotZ] = rotateVector(rx, rz, rotation);
-            registerBush({
-              x: basePos.x + rotX, y: basePos.y + ry, z: basePos.z + rotZ,
-            });
-          }
-          player.sendMessage(`§a🌿 ${structure.meta.bushPositions.length} arbustos registrados (invisibilidad activa).`);
-        }
+        activateArena();
+        player.sendMessage("§6⚡ Modo Arena activado — cajas con HP y arbustos con invisibilidad.");
       }
 
       try { onStructureBuilt(player); } catch {}
