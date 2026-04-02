@@ -14,6 +14,8 @@ import { jerichoWall } from "./jericho_wall.js";
 import { arkCovenant } from "./ark_covenant.js";
 import { davidsTower } from "./davids_tower.js";
 import { elahBattlefield } from "./elah_battlefield.js";
+import { brawlBallArena } from "./brawl_ball_arena.js";
+import { showdownArena } from "./showdown_arena.js";
 
 export const STRUCTURES = {
   ark,
@@ -31,4 +33,6 @@ export const STRUCTURES = {
   ark_covenant: arkCovenant,
   davids_tower: davidsTower,
   elah_battlefield: elahBattlefield,
+  brawl_ball_arena: brawlBallArena,
+  showdown_arena: showdownArena,
 };
