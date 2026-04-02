@@ -46,7 +46,23 @@ system.runInterval(() => {
   const cfg = getConfig();
 
   // ¿Ya pasó el delay inicial?
-  if (elapsed < cfg.gasStartDelay) return;
+  if (elapsed < cfg.gasStartDelay) {
+    // Avisar antes de que empiece el gas (10s, 5s, 3s)
+    const secsLeft = Math.ceil((cfg.gasStartDelay - elapsed) / 20);
+    if ((secsLeft === 10 || secsLeft === 5 || secsLeft === 3) &&
+        (cfg.gasStartDelay - elapsed) % 20 === 0) {
+      for (const name of getLobbyPlayers()) {
+        const p = world.getAllPlayers().find(pl => pl.name === name);
+        if (p) {
+          try {
+            p.sendMessage(`§5☠ ¡El gas empezará en §e${secsLeft}§5 segundos!`);
+            p.playSound("note.hat");
+          } catch {}
+        }
+      }
+    }
+    return;
+  }
 
   // Calcular fase actual del gas
   const ticksSinceGasStart = elapsed - cfg.gasStartDelay;

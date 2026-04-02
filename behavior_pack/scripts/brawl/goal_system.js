@@ -227,25 +227,26 @@ function kickBall(player) {
 
     // Dirección de la patada
     const dx = -Math.sin(yaw) * Math.cos(pitch);
-    const dy = 0.3;  // Pequeño arco
     const dz = Math.cos(yaw) * Math.cos(pitch);
 
     // Mover la pelota 8 bloques en la dirección
     const kickDist = 8;
-    const targetX = loc.x + dx * kickDist;
-    const targetY = loc.y + 0.5;
-    const targetZ = loc.z + dz * kickDist;
+    const startX = loc.x;
+    const startY = loc.y;
+    const startZ = loc.z;
 
-    // Animación: mover en pasos
+    // Animación suave: más pasos con easing
     let step = 0;
-    const totalSteps = 10;
+    const totalSteps = 16;
 
     const kickInterval = system.runInterval(() => {
       step++;
       const t = step / totalSteps;
-      const cx = loc.x + dx * kickDist * t;
-      const cy = loc.y + 0.5 + Math.sin(t * Math.PI) * 2;  // Arco
-      const cz = loc.z + dz * kickDist * t;
+      // Easing out cuadrático para efecto natural
+      const eased = 1 - Math.pow(1 - t, 2);
+      const cx = startX + dx * kickDist * eased;
+      const cy = startY + 0.5 + Math.sin(t * Math.PI) * 1.5;
+      const cz = startZ + dz * kickDist * eased;
 
       try {
         if (ballEntity) {

@@ -2,7 +2,7 @@
 // Estado, jugadores, equipos, timer, ciclo de vida completo
 //
 import { world, system } from "@minecraft/server";
-import { getPlayerCubes } from "./box_mechanic.js";
+import { getPlayerCubes, handlePlayerDeathDrop } from "./box_mechanic.js";
 
 // ═══════════════════════════════════════════
 // CONSTANTES
@@ -30,10 +30,14 @@ let arenaDim = null;       // Dimension object
 let arenaSize = null;      // {w, h, l}
 let arenaId = null;        // "showdown_arena" | "brawl_ball_arena"
 let masterName = null;     // Nombre del jugador que creó la partida
+let spawnPositions = null; // Posiciones de spawn del arena
 
 // Jugadores
 const lobbyPlayers = new Set();            // Nombres en el lobby
 const alivePlayers = new Set();            // Vivos en la partida
+const deadPlayers = new Set();             // Muertos (espectadores) en Showdown
+const deathOrder = [];                      // Orden de muertes para placement
+const processedDeaths = new Set();         // Control anti-doble procesamiento
 const teams = { blue: new Set(), red: new Set() };
 const scores = { blue: 0, red: 0 };
 let currentRound = 1;
@@ -80,6 +84,8 @@ export function getCurrentRound() { return currentRound; }
 export function getMatchTicksElapsed() { return matchTicksElapsed; }
 export function getMatchDurationTicks() { return matchDurationTicks; }
 export function getCountdownTicksLeft() { return countdownTicksLeft; }
+export function getDeadPlayers() { return deadPlayers; }
+export function setSpawnPositions(positions) { spawnPositions = positions; }
 
 export function getTimeRemainingSeconds() {
   const remaining = matchDurationTicks - matchTicksElapsed;
@@ -183,11 +189,29 @@ export function startCountdown() {
 
   // Inicializar jugadores vivos
   alivePlayers.clear();
+  deadPlayers.clear();
+  deathOrder.length = 0;
+  processedDeaths.clear();
   for (const name of lobbyPlayers) {
     alivePlayers.add(name);
   }
 
   setState(GameState.COUNTDOWN);
+
+  // Teleportar a spawns y congelar durante countdown
+  teleportPlayersToSpawns();
+  for (const name of lobbyPlayers) {
+    const p = world.getAllPlayers().find(pl => pl.name === name);
+    if (!p) continue;
+    try {
+      const dur = config.countdownSeconds * 20 + 20;
+      p.addEffect("slowness", dur, { amplifier: 255, showParticles: false });
+      p.addEffect("mining_fatigue", dur, { amplifier: 255, showParticles: false });
+      p.addEffect("resistance", dur, { amplifier: 255, showParticles: false });
+      p.addEffect("weakness", dur, { amplifier: 255, showParticles: false });
+    } catch {}
+  }
+
   return true;
 }
 
@@ -196,7 +220,104 @@ export function startCountdown() {
  */
 function startMatch() {
   matchTicksElapsed = 0;
+
+  // Descongelar + setup de todos los jugadores
+  for (const name of lobbyPlayers) {
+    const p = world.getAllPlayers().find(pl => pl.name === name);
+    if (!p) continue;
+    try {
+      p.removeEffect("slowness");
+      p.removeEffect("mining_fatigue");
+      p.removeEffect("resistance");
+      p.removeEffect("weakness");
+    } catch {}
+    setupPlayer(p);
+  }
+
   setState(GameState.PLAYING);
+}
+
+function setupPlayer(player) {
+  try { player.runCommand("clear @s"); } catch {}
+  try { player.runCommand("effect @s clear"); } catch {}
+  try {
+    player.addEffect("instant_health", 1, { amplifier: 20, showParticles: false });
+    player.addEffect("saturation", 200, { amplifier: 20, showParticles: false });
+  } catch {}
+  // Spawn protection (3 segundos)
+  try {
+    player.addEffect("resistance", 60, { amplifier: 3, showParticles: false });
+  } catch {}
+  // Equipamiento básico
+  try { player.runCommand("give @s stone_sword 1"); } catch {}
+}
+
+function teleportPlayersToSpawns() {
+  const origin = arenaOrigin;
+  if (!origin || !spawnPositions) return;
+
+  if (mode === GameMode.SHOWDOWN) {
+    // Shuffle posiciones para que sean aleatorias
+    const positions = Array.isArray(spawnPositions) ? [...spawnPositions] : [];
+    for (let i = positions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [positions[i], positions[j]] = [positions[j], positions[i]];
+    }
+    let idx = 0;
+    for (const name of lobbyPlayers) {
+      const p = world.getAllPlayers().find(pl => pl.name === name);
+      if (!p || idx >= positions.length) continue;
+      const [rx, ry, rz] = positions[idx];
+      try {
+        p.teleport({
+          x: origin.x + rx + 0.5,
+          y: origin.y + ry,
+          z: origin.z + rz + 0.5,
+        });
+      } catch {}
+      idx++;
+    }
+  } else if (mode === GameMode.BRAWL_BALL) {
+    teleportTeamsToSpawns();
+  }
+}
+
+function teleportTeamsToSpawns() {
+  const origin = arenaOrigin;
+  if (!origin || !spawnPositions || !spawnPositions.blue) return;
+
+  const blueSpawns = spawnPositions.blue;
+  const redSpawns = spawnPositions.red;
+
+  let idxB = 0;
+  for (const name of teams.blue) {
+    const p = world.getAllPlayers().find(pl => pl.name === name);
+    if (!p) continue;
+    const sp = blueSpawns[idxB % blueSpawns.length];
+    try {
+      p.teleport({
+        x: origin.x + sp[0] + 0.5,
+        y: origin.y + sp[1],
+        z: origin.z + sp[2] + 0.5,
+      });
+    } catch {}
+    idxB++;
+  }
+
+  let idxR = 0;
+  for (const name of teams.red) {
+    const p = world.getAllPlayers().find(pl => pl.name === name);
+    if (!p) continue;
+    const sp = redSpawns[idxR % redSpawns.length];
+    try {
+      p.teleport({
+        x: origin.x + sp[0] + 0.5,
+        y: origin.y + sp[1],
+        z: origin.z + sp[2] + 0.5,
+      });
+    } catch {}
+    idxR++;
+  }
 }
 
 /**
@@ -208,7 +329,22 @@ export function reportDeath(playerName, killerName) {
 
   if (mode === GameMode.SHOWDOWN) {
     alivePlayers.delete(playerName);
-    // Verificar si queda un solo jugador
+    deadPlayers.add(playerName);
+    deathOrder.push(playerName);
+
+    // Placement: el primero en morir = último lugar
+    const placement = lobbyPlayers.size - (deathOrder.length - 1);
+    const total = lobbyPlayers.size;
+    const p = world.getAllPlayers().find(pl => pl.name === playerName);
+    if (p) {
+      try {
+        p.onScreenDisplay.setTitle(`§c☠ Eliminado`, {
+          fadeInDuration: 0, stayDuration: 40, fadeOutDuration: 15,
+          subtitle: `§7Quedaste §e#${placement} §7de §e${total}`,
+        });
+      } catch {}
+    }
+
     if (alivePlayers.size <= 1) {
       const winner = alivePlayers.size === 1
         ? [...alivePlayers][0]
@@ -238,7 +374,16 @@ export function reportGoal(scoringTeam) {
     endMatch(scoringTeam);
   } else {
     currentRound++;
-    // El goal_system manejará el reset de ronda
+    // Teleportar jugadores a spawns durante la pausa de ronda
+    system.runTimeout(() => {
+      teleportTeamsToSpawns();
+      for (const name of lobbyPlayers) {
+        const p = world.getAllPlayers().find(pl => pl.name === name);
+        if (p) {
+          try { p.addEffect("resistance", 60, { amplifier: 3, showParticles: false }); } catch {}
+        }
+      }
+    }, 40);
   }
 }
 
@@ -247,11 +392,56 @@ export function reportGoal(scoringTeam) {
  */
 export function endMatch(winner) {
   if (state === GameState.IDLE) return;
+
+  // Limpiar efectos de todos los jugadores
+  for (const name of lobbyPlayers) {
+    const p = world.getAllPlayers().find(pl => pl.name === name);
+    if (p) {
+      try { p.runCommand("effect @s clear"); } catch {}
+    }
+  }
+
   emit("matchEnd", { winner, mode });
   setState(GameState.FINISHED);
 
   // Auto-reset después de 10 segundos
   system.runTimeout(() => { resetMatch(); }, 200);
+}
+
+/**
+ * Un jugador abandona la partida.
+ */
+export function leaveMatch(playerName) {
+  if (state === GameState.IDLE) return false;
+
+  lobbyPlayers.delete(playerName);
+  alivePlayers.delete(playerName);
+  teams.blue.delete(playerName);
+  teams.red.delete(playerName);
+  deadPlayers.delete(playerName);
+
+  const p = world.getAllPlayers().find(pl => pl.name === playerName);
+  if (p) {
+    try { p.runCommand("effect @s clear"); } catch {}
+    try { p.sendMessage("§c✦ Has abandonado la partida."); } catch {}
+  }
+
+  emit("playerLeave", { name: playerName });
+
+  // Verificar si la partida debe terminar
+  if (state === GameState.PLAYING) {
+    if (mode === GameMode.SHOWDOWN && alivePlayers.size <= 1) {
+      const winner = alivePlayers.size === 1 ? [...alivePlayers][0] : null;
+      endMatch(winner);
+    } else if (mode === GameMode.BRAWL_BALL) {
+      if (teams.blue.size === 0 || teams.red.size === 0) {
+        const winner = teams.blue.size > 0 ? "blue" : teams.red.size > 0 ? "red" : null;
+        endMatch(winner);
+      }
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -273,6 +463,10 @@ export function resetMatch() {
   arenaDim = null;
   arenaSize = null;
   masterName = null;
+  spawnPositions = null;
+  deadPlayers.clear();
+  deathOrder.length = 0;
+  processedDeaths.clear();
   setState(GameState.IDLE);
 }
 
@@ -348,6 +542,11 @@ system.runInterval(() => {
               const cubes = getPlayerCubes(name);
               hudText += `  §6⚡${cubes}`;
               hudText += `  §7Vivos: §e${alivePlayers.size}`;
+              // Indicador de gas
+              if (matchTicksElapsed < config.gasStartDelay) {
+                const gasIn = Math.ceil((config.gasStartDelay - matchTicksElapsed) / 20);
+                hudText += `  §5Gas: ${gasIn}s`;
+              }
             }
             p.onScreenDisplay.setActionBar(hudText);
           } catch {}
@@ -381,8 +580,50 @@ world.afterEvents.entityDie.subscribe((ev) => {
   if (entity.typeId !== "minecraft:player") return;
   if (!lobbyPlayers.has(entity.name)) return;
 
+  processedDeaths.add(entity.name);
   const killerName = ev.damageSource?.damagingEntity?.name || null;
+
+  // Manejar drops de cubos (unificado desde box_mechanic)
+  handlePlayerDeathDrop(entity.name);
   reportDeath(entity.name, killerName);
+});
+
+// ═════════════════════════════════════════════
+// RESPAWN — Spectator en Showdown + Backup de muerte
+// ═════════════════════════════════════════════
+
+world.afterEvents.playerSpawn.subscribe((ev) => {
+  if (ev.initialSpawn) return;
+  if (state !== GameState.PLAYING) return;
+  const player = ev.player;
+  if (!lobbyPlayers.has(player.name)) return;
+
+  // Backup: si entityDie no procesó la muerte
+  if (!processedDeaths.has(player.name)) {
+    handlePlayerDeathDrop(player.name);
+    reportDeath(player.name, null);
+  }
+  processedDeaths.delete(player.name);
+
+  // Showdown: modo espectador para muertos
+  if (mode === GameMode.SHOWDOWN && deadPlayers.has(player.name)) {
+    system.runTimeout(() => {
+      try {
+        player.addEffect("invisibility", 999999, { amplifier: 0, showParticles: false });
+        player.addEffect("resistance", 999999, { amplifier: 255, showParticles: false });
+        player.addEffect("weakness", 999999, { amplifier: 255, showParticles: false });
+        player.addEffect("saturation", 999999, { amplifier: 255, showParticles: false });
+        if (arenaOrigin && arenaSize) {
+          player.teleport({
+            x: arenaOrigin.x + arenaSize.w / 2,
+            y: arenaOrigin.y + arenaSize.h + 8,
+            z: arenaOrigin.z + arenaSize.l / 2,
+          });
+        }
+        player.sendMessage("§7☠ Estás espectando. Usa el §eBrawl Master §7para salir.");
+      } catch {}
+    }, 5);
+  }
 });
 
 // ═══════════════════════════════════════════
@@ -398,12 +639,13 @@ on("matchEnd", ({ winner, mode: m }) => {
         if (winner === name) {
           p.onScreenDisplay.setTitle("§6★ ¡VICTORIA! ★", {
             fadeInDuration: 5, stayDuration: 60, fadeOutDuration: 20,
-            subtitle: "§eÚltimo en pie",
+            subtitle: `§e#1 de ${lobbyPlayers.size} — Último en pie`,
           });
           p.playSound("random.totem");
         } else {
-          const pos = [...lobbyPlayers].indexOf(name) + 1;
-          p.onScreenDisplay.setTitle("§c☠ Eliminado", {
+          const idx = deathOrder.indexOf(name);
+          const placement = idx >= 0 ? lobbyPlayers.size - idx : "?";
+          p.onScreenDisplay.setTitle(`§e#${placement} de ${lobbyPlayers.size}`, {
             fadeInDuration: 5, stayDuration: 60, fadeOutDuration: 20,
             subtitle: winner ? `§7Ganador: §e${winner}` : "§7Empate",
           });

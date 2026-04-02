@@ -322,6 +322,13 @@ function getBushPositions() {
   return positions;
 }
 
+function getSpawnPositions() {
+  return {
+    blue: [[10, 2, 8], [13, 2, 8], [16, 2, 8]],
+    red: [[10, 2, 36], [13, 2, 36], [16, 2, 36]],
+  };
+}
+
 export const brawlBallArena = {
   id: "brawl_ball_arena",
   name: "Arena Balón Brawl",
@@ -329,6 +336,7 @@ export const brawlBallArena = {
   blocks: generateBlocks(),
   meta: {
     bushPositions: getBushPositions(),
-    boxPositions: [],   // Brawl Ball no tiene cajas de power cubes
+    boxPositions: [],
+    spawnPositions: getSpawnPositions(),
   },
 };

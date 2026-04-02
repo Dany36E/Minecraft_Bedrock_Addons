@@ -437,6 +437,22 @@ function getBoxPositions() {
   return positions;
 }
 
+function getSpawnPositions() {
+  // 10 posiciones alrededor del perímetro para FFA
+  return [
+    [5, 2, 5],     // NO
+    [22, 2, 2],    // N centro
+    [39, 2, 5],    // NE
+    [42, 2, 22],   // E centro
+    [39, 2, 39],   // SE
+    [22, 2, 42],   // S centro
+    [5, 2, 39],    // SO
+    [2, 2, 22],    // O centro
+    [12, 2, 12],   // Interior NO
+    [32, 2, 32],   // Interior SE
+  ];
+}
+
 export const showdownArena = {
   id: "showdown_arena",
   name: "Arena Supervivencia",
@@ -445,5 +461,6 @@ export const showdownArena = {
   meta: {
     bushPositions: getBushPositions(),
     boxPositions: getBoxPositions(),
+    spawnPositions: getSpawnPositions(),
   },
 };

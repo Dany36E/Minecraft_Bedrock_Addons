@@ -77,8 +77,10 @@ system.runInterval(() => {
           p.removeEffect("invisibility");
           p.removeEffect("resistance");
           p.removeEffect("blindness");
+          // Spawn protection (3 seg)
+          p.addEffect("resistance", 60, { amplifier: 3, showParticles: false });
           p.playSound("random.levelup");
-          p.sendMessage("§a✦ ¡Has reaparecido!");
+          p.sendMessage("§a✦ ¡Has reaparecido! §7(3s protección)");
         } catch {}
       }
     }

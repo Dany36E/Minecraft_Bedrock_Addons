@@ -163,53 +163,26 @@ system.runInterval(() => {
 world.afterEvents.entityDie.subscribe((ev) => {
   const entity = ev.deadEntity;
 
-  // Caja destruida → soltar Power Cube
-  if (entity.typeId === "miaddon:power_box") {
+  // Solo cajas — muerte de jugadores ahora la maneja game_manager
+  if (entity.typeId !== "miaddon:power_box") return;
+
+  try {
+    const loc = entity.location;
+    const dim = entity.dimension;
     try {
-      const loc = entity.location;
-      const dim = entity.dimension;
-      try {
-        dim.runCommand(`particle minecraft:totem_particle ${loc.x} ${loc.y + 0.5} ${loc.z}`);
-        dim.runCommand(`playsound random.levelup @a[r=16] ${loc.x} ${loc.y} ${loc.z} 1 1.5`);
-      } catch {}
-      spawnCubeDrops(dim, loc, 1);
+      dim.runCommand(`particle minecraft:totem_particle ${loc.x} ${loc.y + 0.5} ${loc.z}`);
+      dim.runCommand(`playsound random.levelup @a[r=16] ${loc.x} ${loc.y} ${loc.z} 1 1.5`);
     } catch {}
-    return;
-  }
-
-  // Jugador muere → soltar la MITAD de sus cubos
-  if (!arenaActive) return;
-  if (entity.typeId !== "minecraft:player") return;
-
-  handlePlayerDeath(entity.name);
+    spawnCubeDrops(dim, loc, 1);
+  } catch {}
 });
 
-// Backup: detectar muerte vía playerSpawn (respawn después de morir)
-const pendingDeaths = new Set();
+// ═══════════════════════════════════════════
+// Muerte de jugador → soltar cubos (llamado desde game_manager)
+// ═══════════════════════════════════════════
 
-world.afterEvents.playerSpawn.subscribe((ev) => {
-  if (ev.initialSpawn) return;
+export function handlePlayerDeathDrop(name) {
   if (!arenaActive) return;
-  const player = ev.player;
-  const name = player.name;
-
-  // Si entityDie ya procesó esta muerte, solo limpiar efectos
-  if (!pendingDeaths.has(name)) {
-    // entityDie NO se disparó — procesar muerte aquí
-    handlePlayerDeath(name);
-  }
-  pendingDeaths.delete(name);
-
-  // Siempre limpiar efectos al respawnear
-  system.runTimeout(() => {
-    try { removeAllCubeEffects(player); } catch {}
-  }, 5);
-});
-
-function handlePlayerDeath(name) {
-  // Evitar doble procesamiento
-  if (pendingDeaths.has(name)) return;
-  pendingDeaths.add(name);
 
   const cubes = playerCubes.get(name) || 0;
   playerCubes.delete(name);

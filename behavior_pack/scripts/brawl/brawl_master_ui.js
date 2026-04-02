@@ -7,9 +7,9 @@ import {
   GameState, GameMode,
   getState, getMode, getConfig, setConfig,
   createMatch, joinLobby, leaveLobby, joinTeam,
-  startCountdown, forceEnd, resetMatch,
+  startCountdown, forceEnd, resetMatch, leaveMatch,
   getLobbyPlayers, getTeams, getScores, getMasterName,
-  on, getAlivePlayers, getCurrentRound,
+  on, getAlivePlayers, getCurrentRound, setSpawnPositions,
 } from "./game_manager.js";
 import { buildArena } from "./arena_builder.js";
 import { activateArena, spawnPowerBoxes, deactivateArena } from "./box_mechanic.js";
@@ -49,43 +49,49 @@ async function openMainMenu(player) {
     .title("§l§6★ BRAWL MASTER ★")
     .body(getStatusText());
 
+  const actions = [];
+
   if (st === GameState.IDLE) {
     form.button("§l🏟 Crear Partida\n§r§8Elige modo y mapa");
+    actions.push(() => openModeSelect(player));
     form.button("§l⚙ Configuración\n§r§8Timer, gas, rondas");
+    actions.push(() => openSettings(player));
   } else if (st === GameState.LOBBY) {
     form.button("§l👥 Ver Lobby\n§r§8Jugadores y equipos");
+    actions.push(() => openLobbyView(player));
     form.button("§l➕ Unir Jugadores\n§r§8Agregar al lobby");
+    actions.push(() => openJoinMenu(player));
     if (player.name === getMasterName()) {
       form.button("§l▶ Iniciar Partida\n§r§8Empezar countdown");
+      actions.push(() => tryStartCountdown(player));
       form.button("§l❌ Cancelar\n§r§8Cancelar partida");
+      actions.push(() => { forceEnd(); player.sendMessage("§c✦ Partida cancelada."); });
+    }
+    if (getLobbyPlayers().has(player.name) && player.name !== getMasterName()) {
+      form.button("§l🚪 Salir del Lobby\n§r§8Abandonar la partida");
+      actions.push(() => { leaveMatch(player.name); });
     }
     form.button("§l⚙ Configuración\n§r§8Timer, gas, rondas");
+    actions.push(() => openSettings(player));
   } else if (st === GameState.PLAYING || st === GameState.COUNTDOWN) {
     form.button("§l📊 Estado\n§r§8Ver info de la partida");
+    actions.push(() => showMatchStatus(player));
     if (player.name === getMasterName()) {
       form.button("§l⏹ Terminar Partida\n§r§8Forzar final");
+      actions.push(() => { forceEnd(); player.sendMessage("§c✦ Partida terminada."); });
+    }
+    if (getLobbyPlayers().has(player.name) && player.name !== getMasterName()) {
+      form.button("§l🚪 Abandonar\n§r§8Salir de la partida");
+      actions.push(() => { leaveMatch(player.name); });
     }
   } else if (st === GameState.FINISHED) {
     form.button("§l📊 Resultados\n§r§8Ver resultados");
+    actions.push(() => showMatchStatus(player));
   }
 
   const res = await form.show(player);
-  if (res.canceled) return;
-
-  if (st === GameState.IDLE) {
-    if (res.selection === 0) openModeSelect(player);
-    else if (res.selection === 1) openSettings(player);
-  } else if (st === GameState.LOBBY) {
-    const isMaster = player.name === getMasterName();
-    if (res.selection === 0) openLobbyView(player);
-    else if (res.selection === 1) openJoinMenu(player);
-    else if (isMaster && res.selection === 2) tryStartCountdown(player);
-    else if (isMaster && res.selection === 3) { forceEnd(); player.sendMessage("§c✦ Partida cancelada."); }
-    else { /* Settings is last button */ openSettings(player); }
-  } else if (st === GameState.PLAYING || st === GameState.COUNTDOWN) {
-    if (res.selection === 0) showMatchStatus(player);
-    else if (res.selection === 1) { forceEnd(); player.sendMessage("§c✦ Partida terminada."); }
-  }
+  if (res.canceled || res.selection >= actions.length) return;
+  actions[res.selection]();
 }
 
 // ═══════════════════════════════════════════
@@ -161,6 +167,11 @@ async function openModeSelect(player) {
       if (!created) {
         player.sendMessage("§cError al crear la partida.");
         return;
+      }
+
+      // Configurar posiciones de spawn
+      if (arena.meta?.spawnPositions) {
+        setSpawnPositions(arena.meta.spawnPositions);
       }
 
       // Auto-unir al master
