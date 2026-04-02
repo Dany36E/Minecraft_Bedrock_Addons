@@ -13,6 +13,7 @@ import { dagonTemple } from "./dagon_temple.js";
 import { jerichoWall } from "./jericho_wall.js";
 import { arkCovenant } from "./ark_covenant.js";
 import { davidsTower } from "./davids_tower.js";
+import { elahBattlefield } from "./elah_battlefield.js";
 
 export const STRUCTURES = {
   ark,
@@ -29,4 +30,5 @@ export const STRUCTURES = {
   jericho_wall: jerichoWall,
   ark_covenant: arkCovenant,
   davids_tower: davidsTower,
+  elah_battlefield: elahBattlefield,
 };

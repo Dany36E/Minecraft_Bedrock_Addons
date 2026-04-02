@@ -93,18 +93,24 @@ const STRUCTURE_LORE = {
     verse: '"Tu cuello, como la torre de David... mil escudos están colgados en ella." — Cantares 4:4',
     dims: "12×27×12", blocks: "~3,500", time: "~45 seg", materials: "Piedra labrada",
   },
+  elah_battlefield: {
+    name: "Campo de Batalla de Elá", ref: "1 Samuel 17",
+    story: "Valle de Elá (Valle del Terebinto): los filisteos en un monte y los israelitas en otro, con el valle entre ellos. Goliat desafió 40 días. David escogió 5 piedras lisas del arroyo y con su honda derribó al gigante. Incluye ambos campamentos, el arroyo, terebintos y la zona de duelo.",
+    verse: '"Jehová no salva con espada y lanza; porque de Jehová es la batalla." \u2014 1 Samuel 17:47',
+    dims: "52×12×44", blocks: "~25,000", time: "~5 min", materials: "Terreno natural, lana, hierro, cobre, madera",
+  },
 };
 
 // ══════════════════════════════════════════
 // Filtros por historia bíblica
 // ══════════════════════════════════════════
 const STORY_FILTERS = {
-  all:       { label: "§l§f✦ Todas las estructuras",   sub: "§e14 construcciones",                 ids: Object.keys(STRUCTURE_LORE) },
+  all:       { label: "§l§f✦ Todas las estructuras",   sub: "§e15 construcciones",                 ids: Object.keys(STRUCTURE_LORE) },
   samson:    { label: "§l§c⚔ Historia de Sansón",       sub: "§ePrisión de Gaza, Templo de Dagón",  ids: ["samson_prison", "dagon_temple"] },
   noah:      { label: "§l§9🌊 Historia de Noé",         sub: "§eEl Arca del diluvio",                ids: ["ark"] },
   moses:     { label: "§l§6☁ Historia de Moisés",       sub: "§eTabernáculo, Altar, Pirámide, Arca del Pacto", ids: ["tabernacle", "altar", "pyramid", "ark_covenant"] },
   joshua:    { label: "§l§a⚔ Historia de Josué",        sub: "§eMuralla de Jericó",                  ids: ["jericho_wall"] },
-  david:     { label: "§l§e👑 Historia de David",        sub: "§eTorre de David",                     ids: ["davids_tower"] },
+  david:     { label: "§l§e👑 Historia de David",        sub: "§eTorre de David, Valle de Elá",        ids: ["davids_tower", "elah_battlefield"] },
   genesis:   { label: "§l§d🏗 Génesis y orígenes",      sub: "§eTorre de Babel, Cruz",                ids: ["tower_babel", "cross"] },
   buildings: { label: "§l§b🏠 Edificios",               sub: "§eIglesia, Casa, Pozo",                 ids: ["church", "medieval_house", "well"] },
 };
@@ -127,6 +133,7 @@ const PROGRESS_MESSAGES = {
   jericho_wall:   ["§eSe colocan los cimientos de arenisca...", "§eLa muralla crece hacia el cielo...", "§eLas torres vigía se levantan...", "§e¡La muralla de Jericó se alza... por ahora!"],
   ark_covenant:   ["§6Se labra la madera de acacia...", "§6Se reviste de oro puro...", "§6Los querubines extienden sus alas...", "§6¡La gloria de Dios desciende sobre el propiciatorio!"],
   davids_tower:   ["§7Se excavan los cimientos en la roca...", "§7Los muros de piedra labrada suben...", "§7Las almenas coronan la fortaleza...", "§7¡La Torre de David domina Sión!"],
+  elah_battlefield: ["§aSe forma el terreno del valle...", "§aSe plantan los terebintos de Elá...", "§aLos campamentos se levantan frente a frente...", "§a¡De Jehová es la batalla! — 1 Sam 17:47"],
 };
 
 // ══════════════════════════════════════════
