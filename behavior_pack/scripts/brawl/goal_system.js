@@ -4,9 +4,10 @@
 import { world, system } from "@minecraft/server";
 import {
   GameState, GameMode,
-  getState, getMode, getArenaOrigin, getLobbyPlayers,
+  getState, getMode, getArenaOrigin, getArenaDim, getLobbyPlayers,
   getTeams, reportGoal, on, getArenaSize,
 } from "./game_manager.js";
+import { isPlayerRespawning } from "./respawn_system.js";
 
 // ═══════════════════════════════════════════
 // CONSTANTES DEL CAMPO (relativas al arena origin)
@@ -85,7 +86,7 @@ function spawnBall() {
   };
 
   try {
-    const dim = world.getDimension("overworld");
+    const dim = getArenaDim() || world.getDimension("overworld");
     ballEntity = dim.spawnEntity("miaddon:brawl_ball", pos);
     ballCarrier = null;
   } catch {}
@@ -114,6 +115,11 @@ system.runInterval(() => {
       // Carrier desconectado → respawnear pelota en centro
       ballCarrier = null;
       respawnBallAtCenter();
+      // Avisar a todos (#9)
+      for (const n of getLobbyPlayers()) {
+        const o = world.getAllPlayers().find(pl => pl.name === n);
+        if (o) try { o.sendMessage("§7⚽ Pelota devuelta al centro (jugador desconectado)."); } catch {}
+      }
       return;
     }
 
@@ -139,17 +145,15 @@ system.runInterval(() => {
       const rx = loc.x - origin.x;
       const rz = loc.z - origin.z;
 
-      const carrierTeam = getPlayerTeam(ballCarrier);
-
-      if (carrierTeam === "blue" &&
-          rx >= RED_GOAL.x1 && rx <= RED_GOAL.x2 &&
+      // Gol: carrier entra en CUALQUIER portería
+      // Portería roja → punto para azul (gol normal o autogol de rojo)
+      if (rx >= RED_GOAL.x1 && rx <= RED_GOAL.x2 &&
           rz >= RED_GOAL.z1 && rz <= RED_GOAL.z2) {
         scoreGoal("blue", carrier.name);
         return;
       }
-
-      if (carrierTeam === "red" &&
-          rx >= BLUE_GOAL.x1 && rx <= BLUE_GOAL.x2 &&
+      // Portería azul → punto para rojo (gol normal o autogol de azul)
+      if (rx >= BLUE_GOAL.x1 && rx <= BLUE_GOAL.x2 &&
           rz >= BLUE_GOAL.z1 && rz <= BLUE_GOAL.z2) {
         scoreGoal("red", carrier.name);
         return;
@@ -190,6 +194,8 @@ system.runInterval(() => {
     for (const name of getLobbyPlayers()) {
       const p = world.getAllPlayers().find(pl => pl.name === name);
       if (!p) continue;
+      // No recoger si está en respawn (#4)
+      if (isPlayerRespawning(name)) continue;
 
       const loc = p.location;
       const dx = loc.x - ballLoc.x;
@@ -265,6 +271,11 @@ function kickBall(player) {
     const totalSteps = 16;
 
     const kickInterval = system.runInterval(() => {
+      // Parar si la partida terminó (#3)
+      if (getState() !== GameState.PLAYING) {
+        system.clearRun(kickInterval);
+        return;
+      }
       step++;
       const t = step / totalSteps;
       const eased = 1 - Math.pow(1 - t, 2);
@@ -283,7 +294,11 @@ function kickBall(player) {
         if (blockAt && blockAt.typeId !== "minecraft:air" &&
             blockAt.typeId !== "minecraft:tall_grass" &&
             !blockAt.typeId.includes("water")) {
-          // Pelota choca → se detiene un bloque antes
+          // Pelota choca → feedback sonoro + visual (#10)
+          try {
+            dim.runCommand(`playsound random.break @a[r=16] ${Math.floor(cx)} ${Math.floor(cy)} ${Math.floor(cz)} 0.6 1.2`);
+            dim.runCommand(`particle minecraft:basic_crit_particle ${cx} ${cy} ${cz}`);
+          } catch {}
           system.clearRun(kickInterval);
           return;
         }
@@ -319,7 +334,7 @@ function dropBall(loc) {
   if (loc) {
     if (ballEntity) return; // ball entity ya existe en el mundo
     try {
-      const dim = world.getDimension("overworld");
+      const dim = getArenaDim() || world.getDimension("overworld");
       ballEntity = dim.spawnEntity("miaddon:brawl_ball", loc);
     } catch {}
   } else {
@@ -333,7 +348,7 @@ function respawnBallAtCenter() {
   const origin = getArenaOrigin();
   if (!origin) return;
   try {
-    const dim = world.getDimension("overworld");
+    const dim = getArenaDim() || world.getDimension("overworld");
     ballEntity = dim.spawnEntity("miaddon:brawl_ball", {
       x: origin.x + BALL_SPAWN.rx + 0.5,
       y: origin.y + BALL_SPAWN.ry + 0.5,

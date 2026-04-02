@@ -5,7 +5,7 @@ import { world, system } from "@minecraft/server";
 import {
   GameState, GameMode,
   getState, getMode, getArenaOrigin, getConfig,
-  getLobbyPlayers, getTeams, on,
+  getLobbyPlayers, getTeams, on, applyTeamArmor,
 } from "./game_manager.js";
 
 const respawning = new Map();  // playerName -> ticksLeft
@@ -79,6 +79,8 @@ system.runInterval(() => {
           p.removeEffect("blindness");
           // Spawn protection (3 seg)
           p.addEffect("resistance", 60, { amplifier: 3, showParticles: false });
+          // Restaurar armadura de equipo tras respawn (#11)
+          applyTeamArmor(p);
           p.playSound("random.levelup");
           p.sendMessage("§a✦ ¡Has reaparecido! §7(3s protección)");
         } catch {}

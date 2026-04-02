@@ -5,7 +5,7 @@ import { world, system } from "@minecraft/server";
 import {
   GameState, GameMode,
   getState, getMode, getArenaOrigin, getArenaSize,
-  getConfig, getMatchTicksElapsed, getLobbyPlayers, on,
+  getConfig, getMatchTicksElapsed, getLobbyPlayers, getDeadPlayers, on,
 } from "./game_manager.js";
 
 let gasPhase = 0;
@@ -89,6 +89,8 @@ system.runInterval(() => {
   if (elapsed % 20 !== 0) return;
 
   for (const name of getLobbyPlayers()) {
+    // No dañar a espectadores muertos (#5)
+    if (getDeadPlayers().has(name)) continue;
     const p = world.getAllPlayers().find(pl => pl.name === name);
     if (!p) continue;
 
@@ -103,8 +105,9 @@ system.runInterval(() => {
         const damageBase = 2 + gasPhase;  // 2-N corazones por segundo
         p.applyDamage(damageBase, { cause: "magic" });
 
-        // Partículas de veneno
+        // Feedback sonoro + visual (#8)
         try {
+          p.playSound("mob.wither.ambient");
           p.dimension.runCommand(
             `particle minecraft:dragon_breath_trail ${loc.x} ${loc.y + 1} ${loc.z}`
           );

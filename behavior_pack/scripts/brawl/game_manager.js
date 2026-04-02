@@ -274,7 +274,7 @@ function setupPlayer(player) {
 /**
  * Aplica armadura visual según equipo (azul = diamante, rojo = chainmail).
  */
-function applyTeamArmor(player) {
+export function applyTeamArmor(player) {
   if (mode !== GameMode.BRAWL_BALL) return;
   const isBlue = teams.blue.has(player.name);
   // Azul = armadura de diamante, Rojo = armadura de oro (visual diferenciador)
@@ -485,7 +485,7 @@ export function reportGoal(scoringTeam) {
  * Terminar la partida.
  */
 export function endMatch(winner) {
-  if (state === GameState.IDLE) return;
+  if (state === GameState.IDLE || state === GameState.FINISHED) return;
 
   // Limpiar efectos de todos los jugadores
   for (const name of lobbyPlayers) {

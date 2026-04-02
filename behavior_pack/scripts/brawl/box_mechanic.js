@@ -91,7 +91,7 @@ function applyCubeEffects(player) {
   const cubes = playerCubes.get(player.name) || 0;
   if (cubes <= 0) return;
 
-  const healthLevel = Math.min(cubes * CUBE_HEALTH_PER - 1, 255);
+  const healthLevel = Math.min(cubes * CUBE_HEALTH_PER, 255);
   try {
     player.addEffect("health_boost", 999999, { amplifier: healthLevel, showParticles: false });
   } catch {}
