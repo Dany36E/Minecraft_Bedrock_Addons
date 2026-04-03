@@ -74,7 +74,8 @@ function generateBlocks() {
   }
   function bush(x, z) {
     add(x, 1, z, "minecraft:grass_block");
-    add(x, 2, z, "minecraft:short_grass");
+    add(x, 2, z, "minecraft:oak_leaves");
+    add(x, 3, z, "minecraft:oak_leaves");
   }
   function bushCluster(positions) {
     for (const [x, z] of positions) bush(x, z);
@@ -287,28 +288,44 @@ function generateBlocks() {
   pillar(20, CZ);
 
   // ═══════════════════════════════════════════
-  // ARBUSTOS (grass_block + short_grass)
-  // Cluster más densos y estratégicos
+  // ARBUSTOS (grass_block + oak_leaves ×2 — 2 bloques de alto)
+  // Tiras largas a lo largo de ambos laterales + clusters interiores
+  // Referencia: la imagen muestra tiras de hierba de ~4 bloques verticales
+  //   repetidas cada ~7 bloques a ambos lados del campo
   // ═══════════════════════════════════════════
 
-  // ── Esquinas de portería: cluster de 6 ──
+  // ── TIRAS LATERALES IZQUIERDAS (x=1,2) — espejadas norte/sur ──
+  // Tira 1: cerca de portería (z=4..7)
+  // Tira 2: zona baja-media (z=10..13)
+  // Tira 3: zona media (z=17..20)
+  // Sus espejos: z=37..40, z=31..34, z=24..27
   bushClusterMirrored([
-    [2, 4], [3, 4], [2, 5], [3, 5], [2, 6], [3, 6],
-    [23, 4], [24, 4], [23, 5], [24, 5], [23, 6], [24, 6],
+    // Tira 1: z=4..7 (cerca de portería)
+    [1, 4], [2, 4], [1, 5], [2, 5], [1, 6], [2, 6], [1, 7], [2, 7],
+    // Tira 2: z=10..13 (zona baja-media)
+    [1, 10], [2, 10], [1, 11], [2, 11], [1, 12], [2, 12], [1, 13], [2, 13],
+    // Tira 3: z=17..20 (zona media)
+    [1, 17], [2, 17], [1, 18], [2, 18], [1, 19], [2, 19], [1, 20], [2, 20],
   ]);
 
-  // ── Laterales medios: cluster de 4 ──
+  // ── TIRAS LATERALES DERECHAS (x=24,25) — espejadas norte/sur ──
   bushClusterMirrored([
-    [1, 13], [1, 14], [2, 13], [2, 14],
-    [24, 13], [24, 14], [25, 13], [25, 14],
+    // Tira 1: z=4..7
+    [24, 4], [25, 4], [24, 5], [25, 5], [24, 6], [25, 6], [24, 7], [25, 7],
+    // Tira 2: z=10..13
+    [24, 10], [25, 10], [24, 11], [25, 11], [24, 12], [25, 12], [24, 13], [25, 13],
+    // Tira 3: z=17..20
+    [24, 17], [25, 17], [24, 18], [25, 18], [24, 19], [25, 19], [24, 20], [25, 20],
   ]);
 
-  // ── Laterales centrales: cluster de 3 ──
-  bushCluster([
-    [1, 20], [1, 21], [2, 21],
-    [1, 23], [1, 24], [2, 23],
-    [24, 20], [24, 21], [25, 21],
-    [24, 23], [24, 24], [25, 23],
+  // ── CLUSTERS INTERIORES junto a formaciones hay (espejados N/S) ──
+  bushClusterMirrored([
+    // Flanqueando formaciones L de portería
+    [3, 4], [3, 5],
+    [23, 4], [23, 5],
+    // Interior junto a T-shapes zona media
+    [6, 11], [6, 12],
+    [20, 11], [20, 12],
   ]);
 
   // ═══════════════════════════════════════════
@@ -344,35 +361,36 @@ function getBushPositions() {
   const L = 45;
   function mirrorZ(z) { return L - 1 - z; }
 
-  // Esquinas de portería
-  const cornerBushes = [
-    [2, 4], [3, 4], [2, 5], [3, 5], [2, 6], [3, 6],
-    [23, 4], [24, 4], [23, 5], [24, 5], [23, 6], [24, 6],
+  // Tiras laterales izquierdas (x=1,2) — espejadas N/S
+  const leftStrips = [
+    [1, 4], [2, 4], [1, 5], [2, 5], [1, 6], [2, 6], [1, 7], [2, 7],
+    [1, 10], [2, 10], [1, 11], [2, 11], [1, 12], [2, 12], [1, 13], [2, 13],
+    [1, 17], [2, 17], [1, 18], [2, 18], [1, 19], [2, 19], [1, 20], [2, 20],
   ];
-  for (const [x, z] of cornerBushes) {
+  for (const [x, z] of leftStrips) {
     positions.push([x, 2, z]);
     positions.push([x, 2, mirrorZ(z)]);
   }
 
-  // Laterales medios
-  const sideBushes = [
-    [1, 13], [1, 14], [2, 13], [2, 14],
-    [24, 13], [24, 14], [25, 13], [25, 14],
+  // Tiras laterales derechas (x=24,25) — espejadas N/S
+  const rightStrips = [
+    [24, 4], [25, 4], [24, 5], [25, 5], [24, 6], [25, 6], [24, 7], [25, 7],
+    [24, 10], [25, 10], [24, 11], [25, 11], [24, 12], [25, 12], [24, 13], [25, 13],
+    [24, 17], [25, 17], [24, 18], [25, 18], [24, 19], [25, 19], [24, 20], [25, 20],
   ];
-  for (const [x, z] of sideBushes) {
+  for (const [x, z] of rightStrips) {
     positions.push([x, 2, z]);
     positions.push([x, 2, mirrorZ(z)]);
   }
 
-  // Laterales centrales (no espejados, ya son simétricos)
-  const centerBushes = [
-    [1, 20], [1, 21], [2, 21],
-    [1, 23], [1, 24], [2, 23],
-    [24, 20], [24, 21], [25, 21],
-    [24, 23], [24, 24], [25, 23],
+  // Clusters interiores (espejados N/S)
+  const interiorBushes = [
+    [3, 4], [3, 5], [23, 4], [23, 5],
+    [6, 11], [6, 12], [20, 11], [20, 12],
   ];
-  for (const [x, z] of centerBushes) {
+  for (const [x, z] of interiorBushes) {
     positions.push([x, 2, z]);
+    positions.push([x, 2, mirrorZ(z)]);
   }
 
   return positions;
