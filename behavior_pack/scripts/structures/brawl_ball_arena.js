@@ -1,69 +1,93 @@
 // brawl_ball_arena.js — Mapa de Balón Brawl (Brawl Ball)
-// Arena 3v3 inspirada en Brawl Stars (Supercell)
+// Arena 3v3 inspirada en módulos reales de Brawl Stars
 //
 // ══════════════════════════════════════════
-// ANÁLISIS DEL MAPA DE BRAWL BALL
+// DISEÑO DEL CAMPO
 // ══════════════════════════════════════════
-// • Modo: 3v3, dos equipos compiten por meter gol
-// • Victoria: primer equipo en anotar 2 goles (o ventaja al tiempo)
-// • Elementos del campo:
-//   - Césped verde a cuadros (alternando claro/oscuro)
-//   - Porterías roja (norte) y azul (sur) con red metálica
-//   - Paredes destructibles (naranjas/heno) en formaciones L y clusters
-//   - Pilares indestructibles (azules) como cobertura
-//   - Arbustos verdes (ocultan jugadores) en esquinas y laterales
-//   - Zonas de spawn marcadas para cada equipo
-//   - Muros laterales y traseros delimitando el campo
-//   - Simetría vertical: mitad norte ≈ espejo de mitad sur
+// • Dimensiones: 27×6×45 (W × H × L), idénticas al original
+// • Porterías: x=9..17, z=0..2 (azul) y z=42..44 (roja)
+//   → ¡NO cambiar! goal_system.js depende de estas coordenadas
+// • Balón spawn: rx=13, rz=22 (centro)
 //
-// Dimensiones: 27×6×45 (Ancho × Alto × Largo)
-// Bloques estimados: ~4,500
-// Escala: 1 tile de Brawl Stars ≈ 1 bloque de Minecraft
+// Basado en mapas reales de Brawl Ball:
+// ┌──────────────────────────────┐
+// │ PORTERÍA ROJA (9 bloques)    │ z=44
+// │  ■■■  ████████████  ■■■     │ z=42  muros parciales en portería
+// │ 🌿   HAY    HAY    🌿      │
+// │ 🌿  ●  HAY  HAY  ●  🌿    │ ● = pilares indestructibles
+// │      HAY        HAY         │
+// │  HAY    ●    ●    HAY       │ formaciones en L y T
+// │                              │
+// │  ··· LÍNEA CENTRAL ···      │ z=22
+// │                              │
+// │  HAY    ●    ●    HAY       │
+// │      HAY        HAY         │
+// │ 🌿  ●  HAY  HAY  ●  🌿    │
+// │ 🌿   HAY    HAY    🌿      │
+// │  ■■■  ████████████  ■■■     │ z=2  muros parciales en portería
+// │ PORTERÍA AZUL (9 bloques)    │ z=0
+// └──────────────────────────────┘
+//
+// Elementos clave vs mapa anterior:
+// • Campo COMPLETAMENTE verde (césped a cuadros claro/oscuro)
+// • Muros diagonales/escalonados parcialmente bloqueando porterías
+// • Más formaciones de hay_block esparcidas (L-shapes, T-shapes)
+// • Pilares indestructibles más estratégicos (3 pares simétricos)
+// • Arbustos más densos en esquinas (clusters de 6) y laterales
+// • Porterías con vallas de madera realistas + postes coloreados
 
 function generateBlocks() {
   const blocks = [];
   const W = 27, H = 6, L = 45;
   const CX = 13, CZ = 22;
 
-  // Portería: 9 bloques de ancho, centrada
+  // Portería: 9 bloques ancho, centrada (DEBE coincidir con goal_system.js)
   const GW = 9;
-  const GX1 = CX - Math.floor(GW / 2); // 9
-  const GX2 = CX + Math.floor(GW / 2); // 17
+  const GX1 = 9;   // CX - 4
+  const GX2 = 17;  // CX + 4
   const GOAL_DEPTH = 3;
 
   function add(x, y, z, type) { blocks.push([x, y, z, type]); }
+  function mirrorZ(z) { return L - 1 - z; }
 
-  // Helper: colocar pared de 2 bloques de alto
-  function addWall2(x, z, type) {
+  // ── Helpers ──
+  function wall2(x, z, type) {
     add(x, 2, z, type);
     add(x, 3, z, type);
   }
-
-  // Helper: cluster de paredes destructibles (hay_block, 2 alto)
-  function addHayWall(positions) {
+  function hayWall(positions) {
+    for (const [x, z] of positions) { wall2(x, z, "minecraft:hay_block"); }
+  }
+  function hayWallMirrored(positions) {
     for (const [x, z] of positions) {
-      addWall2(x, z, "minecraft:hay_block");
+      wall2(x, z, "minecraft:hay_block");
+      wall2(x, mirrorZ(z), "minecraft:hay_block");
     }
   }
-
-  // Helper: pilar indestructible (blue_concrete, 2 alto)
-  function addPillar(x, z) {
-    addWall2(x, z, "minecraft:blue_concrete");
+  function pillar(x, z) {
+    wall2(x, z, "minecraft:dark_prismarine");
+    add(x, 4, z, "minecraft:sea_lantern");
   }
-
-  // Helper: arbusto (tall_grass sobre grass_block, 2 bloques alto)
-  function addBush(positions) {
+  function pillarMirrored(x, z) {
+    pillar(x, z);
+    pillar(x, mirrorZ(z));
+  }
+  function bush(x, z) {
+    add(x, 1, z, "minecraft:grass_block");
+    add(x, 2, z, "minecraft:short_grass");
+  }
+  function bushCluster(positions) {
+    for (const [x, z] of positions) bush(x, z);
+  }
+  function bushClusterMirrored(positions) {
     for (const [x, z] of positions) {
-      add(x, 1, z, "minecraft:grass_block");  // soporte para hierba
-      add(x, 2, z, "minecraft:tall_grass");
+      bush(x, z);
+      bush(x, mirrorZ(z));
     }
   }
-
-  // Helper: simétrico respecto al centro Z (para z < CZ, genera el espejo en z > CZ)
-  function mirrorZ(z) { return L - 1 - z; }
 
   // ═══════════════════════════════════════════
-  // CAPA 0: CIMIENTOS (gray_concrete)
+  // Y=0: CIMIENTOS
   // ═══════════════════════════════════════════
   for (let x = 0; x < W; x++) {
     for (let z = 0; z < L; z++) {
@@ -72,115 +96,124 @@ function generateBlocks() {
   }
 
   // ═══════════════════════════════════════════
-  // CAPA 1: SUPERFICIE DE JUEGO
+  // Y=1: SUPERFICIE DE JUEGO — 100% césped
   // ═══════════════════════════════════════════
 
-  // Campo de juego: césped a cuadros (z=3 a z=41, x=1 a x=25)
+  // Todo el interior es césped a cuadros (x=1..25, z=0..44)
   for (let x = 1; x < W - 1; x++) {
-    for (let z = GOAL_DEPTH; z < L - GOAL_DEPTH; z++) {
+    for (let z = 0; z < L; z++) {
       const isLight = (x + z) % 2 === 0;
       add(x, 1, z, isLight ? "minecraft:green_concrete" : "minecraft:lime_concrete");
     }
   }
 
-  // Piso portería azul (z=0 a z=2)
+  // Laterales (x=0, x=26) — piso oscuro bajo muros
+  for (let z = 0; z < L; z++) {
+    add(0, 1, z, "minecraft:gray_concrete");
+    add(W - 1, 1, z, "minecraft:gray_concrete");
+  }
+
+  // ── Piso de porterías (sobreescribe césped) ──
   for (let x = GX1; x <= GX2; x++) {
     for (let z = 0; z < GOAL_DEPTH; z++) {
-      add(x, 1, z, "minecraft:blue_concrete");
+      add(x, 1, z, "minecraft:light_blue_concrete");
     }
-  }
-
-  // Piso portería roja (z=42 a z=44)
-  for (let x = GX1; x <= GX2; x++) {
     for (let z = L - GOAL_DEPTH; z < L; z++) {
-      add(x, 1, z, "minecraft:red_concrete");
+      add(x, 1, z, "minecraft:orange_concrete");
     }
   }
 
-  // Línea central (z=22) — franja blanca
-  for (let x = 1; x < W - 1; x++) {
+  // ── Línea central ──
+  for (let x = 2; x < W - 2; x++) {
     add(x, 1, CZ, "minecraft:white_concrete");
   }
+  // Círculo central (3×3 diamante)
+  add(CX, 1, CZ, "minecraft:bone_block");     // Centro exacto del balón
+  add(CX - 1, 1, CZ, "minecraft:quartz_block");
+  add(CX + 1, 1, CZ, "minecraft:quartz_block");
+  add(CX, 1, CZ - 1, "minecraft:quartz_block");
+  add(CX, 1, CZ + 1, "minecraft:quartz_block");
 
-  // Marcador de balón (centro exacto)
-  add(CX, 1, CZ, "minecraft:bone_block");
-
-  // Marcadores de spawn — equipo azul (z=18)
+  // ── Marcadores de spawn ──
+  // Azul (z=8): 3 posiciones
   for (const sx of [CX - 4, CX, CX + 4]) {
-    add(sx, 1, 18, "minecraft:light_blue_concrete");
+    add(sx, 1, 8, "minecraft:light_blue_concrete");
   }
-  // Marcadores de spawn — equipo rojo (z=26)
+  // Rojo (z=36): 3 posiciones
   for (const sx of [CX - 4, CX, CX + 4]) {
-    add(sx, 1, 26, "minecraft:red_concrete_powder");
+    add(sx, 1, 36, "minecraft:orange_concrete");
   }
 
   // ═══════════════════════════════════════════
-  // MUROS PERIMETRALES (dark_oak_planks, 2 alto)
+  // MUROS PERIMETRALES (spruce_planks, 2 alto)
   // ═══════════════════════════════════════════
 
-  // Muros laterales (x=0 y x=26)
+  // Laterales completos
   for (let z = 0; z < L; z++) {
-    addWall2(0, z, "minecraft:dark_oak_planks");
-    addWall2(W - 1, z, "minecraft:dark_oak_planks");
+    wall2(0, z, "minecraft:spruce_planks");
+    wall2(W - 1, z, "minecraft:spruce_planks");
   }
 
-  // Muros traseros (excepto hueco de portería)
-  for (let x = 1; x < W - 1; x++) {
-    if (x < GX1 || x > GX2) {
-      addWall2(x, 0, "minecraft:dark_oak_planks");
-      addWall2(x, L - 1, "minecraft:dark_oak_planks");
-    }
-  }
+  // Muros traseros: PARCIALES — dejan espacio frente a portería
+  // Azul (z=0): muros solo fuera del arco
+  for (let x = 1; x < GX1; x++) wall2(x, 0, "minecraft:spruce_planks");
+  for (let x = GX2 + 1; x < W - 1; x++) wall2(x, 0, "minecraft:spruce_planks");
+  // Rojo (z=L-1): muros solo fuera del arco
+  for (let x = 1; x < GX1; x++) wall2(x, L - 1, "minecraft:spruce_planks");
+  for (let x = GX2 + 1; x < W - 1; x++) wall2(x, L - 1, "minecraft:spruce_planks");
 
-  // Esquinas reforzadas (para las entradas oblicuas visibles en la imagen)
-  // Esquina superior-izquierda del campo (junto a portería roja)
-  addWall2(1, L - 1, "minecraft:dark_oak_planks");
-  addWall2(2, L - 1, "minecraft:dark_oak_planks");
-  // Esquina superior-derecha
-  addWall2(W - 2, L - 1, "minecraft:dark_oak_planks");
-  addWall2(W - 3, L - 1, "minecraft:dark_oak_planks");
-  // Esquina inferior-izquierda (junto a portería azul)
-  addWall2(1, 0, "minecraft:dark_oak_planks");
-  addWall2(2, 0, "minecraft:dark_oak_planks");
-  // Esquina inferior-derecha
-  addWall2(W - 2, 0, "minecraft:dark_oak_planks");
-  addWall2(W - 3, 0, "minecraft:dark_oak_planks");
+  // ── Muros escalonados frente a portería (bloqueo parcial) ──
+  // Referencia: la imagen muestra bloques en diagonal a los lados del arco
+  // Azul: escalonado desde esquina hacia portería (z=2..4)
+  wall2(3, 3, "minecraft:spruce_planks");
+  wall2(4, 2, "minecraft:spruce_planks");
+  wall2(5, 2, "minecraft:spruce_planks");
+  wall2(W - 4, 3, "minecraft:spruce_planks");
+  wall2(W - 5, 2, "minecraft:spruce_planks");
+  wall2(W - 6, 2, "minecraft:spruce_planks");
+  // Rojo: espejo
+  wall2(3, mirrorZ(3), "minecraft:spruce_planks");
+  wall2(4, mirrorZ(2), "minecraft:spruce_planks");
+  wall2(5, mirrorZ(2), "minecraft:spruce_planks");
+  wall2(W - 4, mirrorZ(3), "minecraft:spruce_planks");
+  wall2(W - 5, mirrorZ(2), "minecraft:spruce_planks");
+  wall2(W - 6, mirrorZ(2), "minecraft:spruce_planks");
 
   // ═══════════════════════════════════════════
-  // PORTERÍAS
+  // PORTERÍAS — postes + travesaño + red + valla
   // ═══════════════════════════════════════════
 
-  // Portería AZUL (z=0, fondo sur)
-  // Postes (3 bloques de alto: y=2,3,4)
+  // ── PORTERÍA AZUL (z=0) ──
+  // Postes (3 alto: y=2,3,4)
   for (let y = 2; y <= 4; y++) {
-    add(GX1, y, 0, "minecraft:blue_concrete");
-    add(GX2, y, 0, "minecraft:blue_concrete");
+    add(GX1, y, 0, "minecraft:light_blue_concrete");
+    add(GX2, y, 0, "minecraft:light_blue_concrete");
   }
-  // Travesaño superior
-  for (let x = GX1; x <= GX2; x++) {
-    add(x, 4, 0, "minecraft:blue_concrete");
-  }
-  // Red (cadenas simulando malla)
+  // Travesaño
+  for (let x = GX1; x <= GX2; x++) add(x, 4, 0, "minecraft:light_blue_concrete");
+  // Red (cadenas)
   for (let x = GX1 + 1; x < GX2; x++) {
     add(x, 2, 0, "minecraft:chain");
     add(x, 3, 0, "minecraft:chain");
   }
-  // Fondo de la portería (pared trasera con red)
+  // Paredes laterales del arco (profundidad)
   for (let z = 0; z < GOAL_DEPTH; z++) {
     for (let y = 2; y <= 3; y++) {
-      add(GX1, y, z, "minecraft:blue_concrete");
-      add(GX2, y, z, "minecraft:blue_concrete");
+      add(GX1, y, z, "minecraft:light_blue_concrete");
+      add(GX2, y, z, "minecraft:light_blue_concrete");
     }
   }
+  // Valla en línea de gol (z=2, la "portería" funcional)
+  for (let x = GX1 + 1; x < GX2; x++) {
+    add(x, 2, 2, "minecraft:spruce_fence");
+  }
 
-  // Portería ROJA (z=L-1, fondo norte)
+  // ── PORTERÍA ROJA (z=L-1) ──
   for (let y = 2; y <= 4; y++) {
     add(GX1, y, L - 1, "minecraft:red_concrete");
     add(GX2, y, L - 1, "minecraft:red_concrete");
   }
-  for (let x = GX1; x <= GX2; x++) {
-    add(x, 4, L - 1, "minecraft:red_concrete");
-  }
+  for (let x = GX1; x <= GX2; x++) add(x, 4, L - 1, "minecraft:red_concrete");
   for (let x = GX1 + 1; x < GX2; x++) {
     add(x, 2, L - 1, "minecraft:chain");
     add(x, 3, L - 1, "minecraft:chain");
@@ -191,131 +224,154 @@ function generateBlocks() {
       add(GX2, y, z, "minecraft:red_concrete");
     }
   }
+  for (let x = GX1 + 1; x < GX2; x++) {
+    add(x, 2, L - 3, "minecraft:spruce_fence");
+  }
 
   // ═══════════════════════════════════════════
   // PAREDES DESTRUCTIBLES (hay_block)
-  // Basadas en análisis de la imagen del mapa
-  // Simetría vertical: se definen para mitad azul y se espejan
+  // Formaciones L y T simétricas — mucho más densas que antes
   // ═══════════════════════════════════════════
 
-  // Formación L inferior-izquierda (cerca de portería azul)
-  const hayPatternsBlueHalf = [
-    // Cluster esquina inferior-izq (L-shape)
-    [3, 8], [4, 8], [4, 9],
-    // Cluster esquina inferior-der (L-shape espejo)
-    [22, 8], [23, 8], [22, 9],
-    // Barrera media-izq
-    [6, 13], [7, 13],
-    // Barrera media-der (espejo)
-    [19, 13], [20, 13],
-    // Cluster centro-izq (cerca de línea central)
-    [8, 18], [9, 18], [9, 19],
-    // Cluster centro-der (espejo)
-    [17, 18], [18, 18], [17, 19],
-  ];
+  // ── Zona de portería: L-shapes a los lados del arco ──
+  hayWallMirrored([
+    // L-shape izquierda (junto a escalonado de portería)
+    [6, 5], [7, 5], [7, 6],
+    // L-shape derecha (espejo X)
+    [20, 5], [19, 5], [19, 6],
+  ]);
 
-  // Colocar mitad azul
-  addHayWall(hayPatternsBlueHalf);
+  // ── Zona media: barreras horizontales + clusters ──
+  hayWallMirrored([
+    // Barrera horizontal izquierda
+    [3, 10], [4, 10], [5, 10],
+    // Barrera horizontal derecha
+    [21, 10], [22, 10], [23, 10],
+    // Cluster interior-izq (T-shape)
+    [7, 13], [8, 13], [9, 13], [8, 14],
+    // Cluster interior-der (T-shape espejo)
+    [17, 13], [18, 13], [19, 13], [18, 14],
+  ]);
 
-  // Espejo para mitad roja
-  for (const [x, z] of hayPatternsBlueHalf) {
-    addWall2(x, mirrorZ(z), "minecraft:hay_block");
-  }
+  // ── Zona central: flancos del centro ──
+  hayWallMirrored([
+    // Close to center — cuñas
+    [4, 18], [5, 18], [5, 19],
+    [21, 18], [22, 18], [21, 19],
+    // Interior center — L-shapes pequeñas
+    [10, 19], [10, 20],
+    [16, 19], [16, 20],
+  ]);
 
-  // Paredes centrales decorativas (no se espejan, son únicas)
-  addHayWall([
-    [11, 20], [15, 20],  // flanqueando spawns rojos
-    [11, 24], [15, 24],  // flanqueando spawns azules
+  // ── Línea central: bloques únicos (no se espejan) ──
+  hayWall([
+    [7, CZ - 1], [7, CZ + 1],     // flancos izq
+    [19, CZ - 1], [19, CZ + 1],   // flancos der
   ]);
 
   // ═══════════════════════════════════════════
-  // PILARES INDESTRUCTIBLES (blue_concrete)
+  // PILARES INDESTRUCTIBLES (dark_prismarine + sea_lantern top)
+  // 3 pares simétricos: laterales, interiores, centrales
   // ═══════════════════════════════════════════
 
-  const pillarPositionsBlueHalf = [
-    [5, 16], [21, 16],   // laterales medios
-    [10, 11], [16, 11],  // interiores
-  ];
+  // Par 1: laterales (control de pasillo lateral)
+  pillarMirrored(3, 15);
+  pillarMirrored(23, 15);
 
-  for (const [x, z] of pillarPositionsBlueHalf) {
-    addPillar(x, z);
-    addPillar(x, mirrorZ(z));   // espejo
-  }
+  // Par 2: interiores (defensa media)
+  pillarMirrored(10, 10);
+  pillarMirrored(16, 10);
 
-  // Pilares centrales (eje)
-  addPillar(CX - 3, CZ);
-  addPillar(CX + 3, CZ);
+  // Par 3: flancos centrales (junto a línea central)
+  pillar(6, CZ);
+  pillar(20, CZ);
 
   // ═══════════════════════════════════════════
-  // ARBUSTOS (short_grass) — escondites
-  // Clusters de 2-4 bloques en esquinas y laterales
+  // ARBUSTOS (grass_block + short_grass)
+  // Cluster más densos y estratégicos
   // ═══════════════════════════════════════════
 
-  const bushPatternsBlueHalf = [
-    // Esquina inferior-izq (cluster de 4)
-    [2, 5], [3, 5], [2, 6], [3, 6],
-    // Esquina inferior-der (espejo)
-    [23, 5], [24, 5], [23, 6], [24, 6],
-    // Lateral izquierdo medio
-    [1, 14], [1, 15], [2, 15],
-    // Lateral derecho medio (espejo)
-    [25, 14], [25, 15], [24, 15],
-  ];
+  // ── Esquinas de portería: cluster de 6 ──
+  bushClusterMirrored([
+    [2, 4], [3, 4], [2, 5], [3, 5], [2, 6], [3, 6],
+    [23, 4], [24, 4], [23, 5], [24, 5], [23, 6], [24, 6],
+  ]);
 
-  addBush(bushPatternsBlueHalf);
-  // Espejo para mitad roja
-  for (const [x, z] of bushPatternsBlueHalf) {
-    add(x, 1, mirrorZ(z), "minecraft:grass_block");
-    add(x, 2, mirrorZ(z), "minecraft:tall_grass");
-  }
+  // ── Laterales medios: cluster de 4 ──
+  bushClusterMirrored([
+    [1, 13], [1, 14], [2, 13], [2, 14],
+    [24, 13], [24, 14], [25, 13], [25, 14],
+  ]);
 
-  // Arbustos junto a las porterías
-  addBush([
-    [4, 4], [5, 4],          // junto a portería azul izq
-    [21, 4], [22, 4],        // junto a portería azul der
-    [4, 40], [5, 40],        // junto a portería roja izq
-    [21, 40], [22, 40],      // junto a portería roja der
+  // ── Laterales centrales: cluster de 3 ──
+  bushCluster([
+    [1, 20], [1, 21], [2, 21],
+    [1, 23], [1, 24], [2, 23],
+    [24, 20], [24, 21], [25, 21],
+    [24, 23], [24, 24], [25, 23],
   ]);
 
   // ═══════════════════════════════════════════
-  // ILUMINACIÓN (antorchas bajo los muros)
+  // ILUMINACIÓN
   // ═══════════════════════════════════════════
-  for (let z = 5; z < L - 5; z += 6) {
+
+  // Antorchas laterales cada 8 bloques
+  for (let z = 4; z < L - 4; z += 8) {
     add(1, 2, z, "minecraft:torch");
     add(W - 2, 2, z, "minecraft:torch");
   }
 
-  // Antorchas en porterías
+  // Linternas en porterías
   add(GX1 + 1, 2, 1, "minecraft:lantern");
   add(GX2 - 1, 2, 1, "minecraft:lantern");
   add(GX1 + 1, 2, L - 2, "minecraft:lantern");
   add(GX2 - 1, 2, L - 2, "minecraft:lantern");
 
+  // Techo parcial sobre porterías (vigas decorativas)
+  for (let x = GX1; x <= GX2; x++) {
+    add(x, 5, 0, "minecraft:spruce_slab");
+    add(x, 5, L - 1, "minecraft:spruce_slab");
+  }
+
   return blocks;
 }
 
 // ═══════════════════════════════════════════
-// Posiciones de arbustos para mecánica de invisibilidad
+// META: posiciones de arbustos para bush_mechanic.js
 // ═══════════════════════════════════════════
 function getBushPositions() {
   const positions = [];
   const L = 45;
   function mirrorZ(z) { return L - 1 - z; }
 
-  const blueHalf = [
-    [2, 5], [3, 5], [2, 6], [3, 6],
-    [23, 5], [24, 5], [23, 6], [24, 6],
-    [1, 14], [1, 15], [2, 15],
-    [25, 14], [25, 15], [24, 15],
+  // Esquinas de portería
+  const cornerBushes = [
+    [2, 4], [3, 4], [2, 5], [3, 5], [2, 6], [3, 6],
+    [23, 4], [24, 4], [23, 5], [24, 5], [23, 6], [24, 6],
   ];
-
-  for (const [x, z] of blueHalf) {
+  for (const [x, z] of cornerBushes) {
     positions.push([x, 2, z]);
     positions.push([x, 2, mirrorZ(z)]);
   }
 
-  // Arbustos junto a porterías
-  for (const [x, z] of [[4, 4], [5, 4], [21, 4], [22, 4], [4, 40], [5, 40], [21, 40], [22, 40]]) {
+  // Laterales medios
+  const sideBushes = [
+    [1, 13], [1, 14], [2, 13], [2, 14],
+    [24, 13], [24, 14], [25, 13], [25, 14],
+  ];
+  for (const [x, z] of sideBushes) {
+    positions.push([x, 2, z]);
+    positions.push([x, 2, mirrorZ(z)]);
+  }
+
+  // Laterales centrales (no espejados, ya son simétricos)
+  const centerBushes = [
+    [1, 20], [1, 21], [2, 21],
+    [1, 23], [1, 24], [2, 23],
+    [24, 20], [24, 21], [25, 21],
+    [24, 23], [24, 24], [25, 23],
+  ];
+  for (const [x, z] of centerBushes) {
     positions.push([x, 2, z]);
   }
 
@@ -324,14 +380,15 @@ function getBushPositions() {
 
 function getSpawnPositions() {
   return {
-    blue: [[10, 2, 8], [13, 2, 8], [16, 2, 8]],
-    red: [[10, 2, 36], [13, 2, 36], [16, 2, 36]],
+    blue: [[9, 2, 8], [13, 2, 8], [17, 2, 8]],
+    red:  [[9, 2, 36], [13, 2, 36], [17, 2, 36]],
   };
 }
 
 export const brawlBallArena = {
   id: "brawl_ball_arena",
-  name: "Arena Balón Brawl",
+  name: "Campo Brawl Ball",
+  size: { w: 27, h: 6, l: 45 },
   category: "arenas",
   blocks: generateBlocks(),
   meta: {
